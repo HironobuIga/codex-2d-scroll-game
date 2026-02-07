@@ -27,7 +27,34 @@ const state = {
     height: 120,
     bob: 0,
   },
+  meteors: [],
+  spawnTimer: 0,
+  score: 0,
+  health: 3,
+  hitCooldown: 0,
+  gameOver: false,
 };
+
+const METEOR_COLORS = ["#f97316", "#fb7185", "#facc15"];
+
+function resetGame() {
+  state.hero = {
+    x: 180,
+    y: 360,
+    baseY: 360,
+    width: 70,
+    height: 90,
+    jumpVelocity: 0,
+    isJumping: false,
+    attackTimer: 0,
+  };
+  state.meteors = [];
+  state.spawnTimer = 0;
+  state.score = 0;
+  state.health = 3;
+  state.hitCooldown = 0;
+  state.gameOver = false;
+}
 
 function jump() {
   if (!state.hero.isJumping) {
@@ -43,12 +70,40 @@ function attack() {
 window.addEventListener("keydown", (event) => {
   if (event.code === "Space") {
     event.preventDefault();
-    jump();
+    if (!state.gameOver) {
+      jump();
+    }
   }
   if (event.key.toLowerCase() === "j") {
-    attack();
+    if (!state.gameOver) {
+      attack();
+    }
+  }
+  if (event.key.toLowerCase() === "r") {
+    resetGame();
   }
 });
+
+function spawnMeteor() {
+  const size = 24 + Math.random() * 16;
+  state.meteors.push({
+    x: canvas.width + size + Math.random() * 180,
+    y: 360 + Math.random() * 60,
+    size,
+    speed: 4.4 + Math.random() * 1.8,
+    wobble: Math.random() * Math.PI * 2,
+    color: METEOR_COLORS[Math.floor(Math.random() * METEOR_COLORS.length)],
+  });
+}
+
+function rectsOverlap(a, b) {
+  return (
+    a.x < b.x + b.width &&
+    a.x + a.width > b.x &&
+    a.y < b.y + b.height &&
+    a.y + a.height > b.y
+  );
+}
 
 function update(delta) {
   state.backgroundOffset = (state.backgroundOffset + delta * 0.05) % canvas.width;
@@ -59,6 +114,11 @@ function update(delta) {
       star.x = canvas.width + 5;
       star.y = Math.random() * canvas.height;
     }
+  }
+
+  if (state.gameOver) {
+    state.monster.bob += delta * 0.004;
+    return;
   }
 
   if (state.hero.isJumping) {
@@ -77,6 +137,77 @@ function update(delta) {
     }
   }
 
+  if (state.hitCooldown > 0) {
+    state.hitCooldown -= delta;
+    if (state.hitCooldown < 0) {
+      state.hitCooldown = 0;
+    }
+  }
+
+  state.spawnTimer -= delta;
+  if (state.spawnTimer <= 0) {
+    spawnMeteor();
+    state.spawnTimer = 900 + Math.random() * 800;
+  }
+
+  for (const meteor of state.meteors) {
+    meteor.x -= meteor.speed;
+    meteor.wobble += 0.04;
+    meteor.y += Math.sin(meteor.wobble) * 0.4;
+  }
+
+  state.meteors = state.meteors.filter((meteor) => meteor.x + meteor.size > -40);
+
+  if (state.hero.attackTimer > 0) {
+    const attackBox = {
+      x: state.hero.x + state.hero.width - 6,
+      y: state.hero.y + 10,
+      width: 60,
+      height: 50,
+    };
+    state.meteors = state.meteors.filter((meteor) => {
+      const meteorBox = {
+        x: meteor.x - meteor.size * 0.6,
+        y: meteor.y - meteor.size * 0.6,
+        width: meteor.size * 1.2,
+        height: meteor.size * 1.2,
+      };
+      if (rectsOverlap(attackBox, meteorBox)) {
+        state.score += 120;
+        return false;
+      }
+      return true;
+    });
+  }
+
+  if (state.hitCooldown <= 0) {
+    const heroBox = {
+      x: state.hero.x + 10,
+      y: state.hero.y + 10,
+      width: state.hero.width - 20,
+      height: state.hero.height - 10,
+    };
+    for (const meteor of state.meteors) {
+      const meteorBox = {
+        x: meteor.x - meteor.size * 0.5,
+        y: meteor.y - meteor.size * 0.5,
+        width: meteor.size,
+        height: meteor.size,
+      };
+      if (rectsOverlap(heroBox, meteorBox)) {
+        state.health -= 1;
+        state.hitCooldown = 1000;
+        meteor.x = -100;
+        break;
+      }
+    }
+  }
+
+  if (state.health <= 0) {
+    state.gameOver = true;
+  }
+
+  state.score += delta * 0.02;
   state.monster.bob += delta * 0.004;
 }
 
@@ -122,6 +253,13 @@ function drawHero() {
 
   ctx.save();
   ctx.translate(x, y);
+
+  if (state.hitCooldown > 0) {
+    ctx.fillStyle = "rgba(248, 113, 113, 0.35)";
+    ctx.beginPath();
+    ctx.ellipse(34, 58, 40, 44, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
 
   ctx.fillStyle = "#ffd6e0";
   ctx.beginPath();
@@ -190,16 +328,71 @@ function drawMonster() {
   ctx.fill();
 }
 
-function render() {
-  drawBackground();
-  drawHero();
-  drawMonster();
+function drawMeteors() {
+  for (const meteor of state.meteors) {
+    ctx.save();
+    ctx.translate(meteor.x, meteor.y);
+    ctx.rotate(Math.sin(meteor.wobble) * 0.4);
 
+    ctx.fillStyle = meteor.color;
+    ctx.beginPath();
+    ctx.arc(0, 0, meteor.size * 0.6, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = "rgba(255, 255, 255, 0.3)";
+    ctx.beginPath();
+    ctx.arc(-meteor.size * 0.2, -meteor.size * 0.15, meteor.size * 0.18, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = "rgba(251, 191, 36, 0.5)";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(-meteor.size * 1.2, 0);
+    ctx.lineTo(-meteor.size * 0.6, 0);
+    ctx.stroke();
+
+    ctx.restore();
+  }
+}
+
+function drawHud() {
   ctx.fillStyle = "rgba(226, 232, 240, 0.85)";
   ctx.font = "16px 'Zen Maru Gothic', sans-serif";
   ctx.fillText("人間 vs モンスター", 30, 36);
   ctx.fillStyle = "rgba(129, 140, 248, 0.8)";
   ctx.fillText("Space scroll demo", 30, 58);
+
+  ctx.fillStyle = "rgba(191, 219, 254, 0.9)";
+  ctx.font = "18px 'Zen Maru Gothic', sans-serif";
+  ctx.fillText(`Score: ${Math.floor(state.score)}`, 760, 36);
+
+  ctx.fillStyle = "rgba(248, 113, 113, 0.9)";
+  ctx.fillText(`Life: ${state.health}`, 760, 62);
+}
+
+function drawGameOver() {
+  if (!state.gameOver) {
+    return;
+  }
+  ctx.fillStyle = "rgba(15, 23, 42, 0.7)";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  ctx.fillStyle = "#f8fafc";
+  ctx.font = "36px 'Zen Maru Gothic', sans-serif";
+  ctx.fillText("GAME OVER", 350, 240);
+
+  ctx.fillStyle = "rgba(199, 210, 254, 0.9)";
+  ctx.font = "20px 'Zen Maru Gothic', sans-serif";
+  ctx.fillText("Rキーでリトライ", 380, 280);
+}
+
+function render() {
+  drawBackground();
+  drawMeteors();
+  drawHero();
+  drawMonster();
+  drawHud();
+  drawGameOver();
 }
 
 function loop(timestamp) {
