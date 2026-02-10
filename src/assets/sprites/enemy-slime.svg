@@ -1,0 +1,15 @@
+<svg width="96" height="72" viewBox="0 0 96 72" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="slimeBody" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(38 20) rotate(45) scale(44 30)">
+      <stop offset="0" stop-color="#FF9E7D"/>
+      <stop offset="1" stop-color="#D84D5C"/>
+    </radialGradient>
+  </defs>
+  <ellipse cx="49" cy="63" rx="27" ry="7" fill="#4A1824" fill-opacity="0.24"/>
+  <path d="M12 50C12 31.2 27.2 16 46 16H52C70.8 16 86 31.2 86 50V52C86 54.2 84.2 56 82 56H16C13.8 56 12 54.2 12 52V50Z" fill="url(#slimeBody)"/>
+  <circle cx="36" cy="38" r="7" fill="#FCF7F3"/>
+  <circle cx="62" cy="38" r="7" fill="#FCF7F3"/>
+  <circle cx="36" cy="39" r="3.2" fill="#2A1B2C"/>
+  <circle cx="62" cy="39" r="3.2" fill="#2A1B2C"/>
+  <path d="M38 49C42.2 52.6 55.8 52.6 60 49" stroke="#FAD9D9" stroke-width="3" stroke-linecap="round"/>
+</svg>

@@ -1,0 +1,85 @@
+:root {
+  color: #0e1526;
+  font-family: "Trebuchet MS", "Avenir Next", "Segoe UI", sans-serif;
+  background: radial-gradient(circle at 15% 20%, #f3fbff 0%, #d7ebff 44%, #c9dcff 100%);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+#app {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 16px;
+}
+
+#game-shell {
+  position: relative;
+  width: min(96vw, 1200px);
+  aspect-ratio: 16 / 9;
+  border-radius: 18px;
+  display: grid;
+  place-items: center;
+  background: linear-gradient(160deg, #1a365c 0%, #163252 38%, #122844 100%);
+  box-shadow:
+    0 18px 56px rgba(20, 48, 84, 0.35),
+    inset 0 0 0 2px rgba(255, 255, 255, 0.18);
+  overflow: hidden;
+}
+
+#game-canvas {
+  display: block;
+  border-radius: 10px;
+  box-shadow: 0 8px 28px rgba(8, 20, 40, 0.34);
+  image-rendering: pixelated;
+}
+
+#start-btn {
+  position: absolute;
+  left: 50%;
+  bottom: 22px;
+  transform: translateX(-50%);
+  border: none;
+  border-radius: 999px;
+  padding: 11px 26px;
+  font-size: 16px;
+  letter-spacing: 0.03em;
+  background: linear-gradient(90deg, #ffe266 0%, #ffb934 100%);
+  color: #1f2733;
+  font-weight: 700;
+  box-shadow: 0 8px 20px rgba(16, 20, 28, 0.33);
+  cursor: pointer;
+}
+
+#start-btn:hover {
+  filter: brightness(1.04);
+}
+
+#start-btn:active {
+  transform: translateX(-50%) scale(0.98);
+}
+
+#game-shell:fullscreen {
+  width: 100vw;
+  height: 100vh;
+  max-width: none;
+  border-radius: 0;
+}
+
+#game-shell:fullscreen #start-btn {
+  bottom: 34px;
+}
+
+@media (max-width: 780px) {
+  #start-btn {
+    font-size: 14px;
+    padding: 10px 20px;
+  }
+}

@@ -1,0 +1,15 @@
+<svg width="1024" height="512" viewBox="0 0 1024 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="midLayer" x1="0" y1="150" x2="0" y2="512" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#7AA3D4"/>
+      <stop offset="1" stop-color="#456C9C"/>
+    </linearGradient>
+    <linearGradient id="midFog" x1="0" y1="300" x2="0" y2="500" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#D5ECFF" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#D5ECFF" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <path d="M0 458L96 354L174 432L254 320L340 446L434 292L514 438L610 302L706 456L810 334L910 448L1024 344V512H0V458Z" fill="url(#midLayer)"/>
+  <path d="M0 472L78 414L152 470L236 404L316 482L402 414L472 482L546 412L618 476L700 420L772 484L858 420L942 486L1024 428V512H0V472Z" fill="#355B88"/>
+  <rect x="0" y="302" width="1024" height="210" fill="url(#midFog)"/>
+</svg>

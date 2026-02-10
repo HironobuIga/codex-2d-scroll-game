@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' ws://localhost:* ws://127.0.0.1:* ws://[::1]:* wss://localhost:* wss://127.0.0.1:* wss://[::1]:*; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'none'"
+    />
+    <title>Side Scroll Trial</title>
+  </head>
+  <body>
+    <div id="app">
+      <div id="game-shell" aria-label="2D side scroll action game">
+        <canvas id="game-canvas" width="960" height="540" aria-label="Game canvas"></canvas>
+        <button id="start-btn" type="button">Start</button>
+      </div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
