@@ -1,0 +1,14 @@
+<svg width="120" height="180" viewBox="0 0 120 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="ruinStone" x1="18" y1="28" x2="102" y2="172" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#B8C6CF"/>
+      <stop offset="1" stop-color="#708591"/>
+    </linearGradient>
+  </defs>
+  <ellipse cx="62" cy="168" rx="36" ry="9" fill="#183247" fill-opacity="0.22"/>
+  <rect x="22" y="36" width="76" height="126" rx="8" fill="url(#ruinStone)"/>
+  <rect x="28" y="26" width="64" height="20" rx="6" fill="#8EA1AE"/>
+  <rect x="42" y="62" width="10" height="82" rx="4" fill="#5A6D79"/>
+  <rect x="68" y="62" width="10" height="82" rx="4" fill="#5A6D79"/>
+  <rect x="46" y="78" width="28" height="12" rx="4" fill="#4E606D"/>
+</svg>
