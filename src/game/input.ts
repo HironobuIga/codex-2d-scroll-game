@@ -1,4 +1,15 @@
-const BLOCKED_KEYS = new Set(["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "Space", "Enter", "KeyF"]);
+const BLOCKED_KEYS = new Set([
+  "ArrowLeft",
+  "ArrowRight",
+  "ArrowUp",
+  "ArrowDown",
+  "Space",
+  "Enter",
+  "KeyF",
+  "KeyA",
+  "KeyB",
+  "KeyR",
+]);
 
 export class InputState {
   private readonly pressed = new Set<string>();

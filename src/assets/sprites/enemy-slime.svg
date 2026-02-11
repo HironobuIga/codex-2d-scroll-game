@@ -1,15 +1,19 @@
 <svg width="96" height="72" viewBox="0 0 96 72" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <radialGradient id="slimeBody" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(38 20) rotate(45) scale(44 30)">
-      <stop offset="0" stop-color="#FF9E7D"/>
-      <stop offset="1" stop-color="#D84D5C"/>
+    <radialGradient id="alienBody" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(42 20) rotate(46) scale(44 30)">
+      <stop offset="0" stop-color="#C4FFD7"/>
+      <stop offset="1" stop-color="#53D99A"/>
     </radialGradient>
   </defs>
-  <ellipse cx="49" cy="63" rx="27" ry="7" fill="#4A1824" fill-opacity="0.24"/>
-  <path d="M12 50C12 31.2 27.2 16 46 16H52C70.8 16 86 31.2 86 50V52C86 54.2 84.2 56 82 56H16C13.8 56 12 54.2 12 52V50Z" fill="url(#slimeBody)"/>
-  <circle cx="36" cy="38" r="7" fill="#FCF7F3"/>
-  <circle cx="62" cy="38" r="7" fill="#FCF7F3"/>
-  <circle cx="36" cy="39" r="3.2" fill="#2A1B2C"/>
-  <circle cx="62" cy="39" r="3.2" fill="#2A1B2C"/>
-  <path d="M38 49C42.2 52.6 55.8 52.6 60 49" stroke="#FAD9D9" stroke-width="3" stroke-linecap="round"/>
+  <ellipse cx="49" cy="63" rx="27" ry="7" fill="#10412C" fill-opacity="0.24"/>
+  <path d="M10 50C10 31.2 25.2 16 44 16H52C70.8 16 86 31.2 86 50V52C86 54.2 84.2 56 82 56H14C11.8 56 10 54.2 10 52V50Z" fill="url(#alienBody)"/>
+  <ellipse cx="32" cy="24" rx="6" ry="10" fill="#84FFBA"/>
+  <ellipse cx="64" cy="24" rx="6" ry="10" fill="#84FFBA"/>
+  <circle cx="32" cy="36" r="7" fill="#FCFFFD"/>
+  <circle cx="62" cy="36" r="7" fill="#FCFFFD"/>
+  <circle cx="32" cy="37" r="3.2" fill="#21352A"/>
+  <circle cx="62" cy="37" r="3.2" fill="#21352A"/>
+  <path d="M37 48C41 51.5 53 51.5 57 48" stroke="#E9FFF2" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="22" cy="46" r="2" fill="#A6FFD0"/>
+  <circle cx="72" cy="46" r="2" fill="#A6FFD0"/>
 </svg>

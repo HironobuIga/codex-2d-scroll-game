@@ -1,7 +1,10 @@
 :root {
-  color: #0e1526;
+  color: #ecf4ff;
   font-family: "Trebuchet MS", "Avenir Next", "Segoe UI", sans-serif;
-  background: radial-gradient(circle at 15% 20%, #f3fbff 0%, #d7ebff 44%, #c9dcff 100%);
+  background:
+    radial-gradient(circle at 18% 18%, rgba(93, 158, 255, 0.42) 0%, rgba(93, 158, 255, 0) 36%),
+    radial-gradient(circle at 86% 12%, rgba(210, 120, 255, 0.36) 0%, rgba(210, 120, 255, 0) 32%),
+    linear-gradient(160deg, #040616 0%, #080826 42%, #160f3f 100%);
 }
 
 * {
@@ -27,10 +30,13 @@ body {
   border-radius: 18px;
   display: grid;
   place-items: center;
-  background: linear-gradient(160deg, #1a365c 0%, #163252 38%, #122844 100%);
+  background:
+    radial-gradient(circle at 18% 15%, rgba(133, 211, 255, 0.2), rgba(133, 211, 255, 0) 32%),
+    radial-gradient(circle at 84% 18%, rgba(214, 125, 255, 0.24), rgba(214, 125, 255, 0) 30%),
+    linear-gradient(160deg, #0b1133 0%, #161243 45%, #25155b 100%);
   box-shadow:
-    0 18px 56px rgba(20, 48, 84, 0.35),
-    inset 0 0 0 2px rgba(255, 255, 255, 0.18);
+    0 18px 56px rgba(8, 11, 30, 0.55),
+    inset 0 0 0 2px rgba(173, 218, 255, 0.18);
   overflow: hidden;
 }
 
@@ -41,29 +47,40 @@ body {
   image-rendering: pixelated;
 }
 
-#start-btn {
+#menu-actions {
   position: absolute;
   left: 50%;
   bottom: 22px;
   transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.menu-btn {
   border: none;
   border-radius: 999px;
   padding: 11px 26px;
   font-size: 16px;
   letter-spacing: 0.03em;
-  background: linear-gradient(90deg, #ffe266 0%, #ffb934 100%);
-  color: #1f2733;
+  background: linear-gradient(90deg, #83f5ff 0%, #a68bff 48%, #ff8fd2 100%);
+  color: #131629;
   font-weight: 700;
-  box-shadow: 0 8px 20px rgba(16, 20, 28, 0.33);
+  box-shadow: 0 8px 20px rgba(6, 10, 24, 0.45);
   cursor: pointer;
 }
 
-#start-btn:hover {
+.menu-btn:hover {
   filter: brightness(1.04);
 }
 
-#start-btn:active {
-  transform: translateX(-50%) scale(0.98);
+.menu-btn:active {
+  transform: scale(0.98);
+}
+
+.retry-btn {
+  background: linear-gradient(90deg, #9dffbd 0%, #7ce8d8 50%, #8bc3ff 100%);
+  color: #102438;
 }
 
 #game-shell:fullscreen {
@@ -73,12 +90,12 @@ body {
   border-radius: 0;
 }
 
-#game-shell:fullscreen #start-btn {
+#game-shell:fullscreen #menu-actions {
   bottom: 34px;
 }
 
 @media (max-width: 780px) {
-  #start-btn {
+  .menu-btn {
     font-size: 14px;
     padding: 10px 20px;
   }

@@ -1,16 +1,18 @@
 <svg width="128" height="192" viewBox="0 0 128 192" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="pole" x1="18" y1="18" x2="32" y2="184" gradientUnits="userSpaceOnUse">
+    <linearGradient id="pole" x1="20" y1="16" x2="32" y2="184" gradientUnits="userSpaceOnUse">
       <stop offset="0" stop-color="#E7F4FF"/>
       <stop offset="1" stop-color="#9CB5CB"/>
     </linearGradient>
-    <linearGradient id="flag" x1="30" y1="40" x2="112" y2="98" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#FF8C8C"/>
-      <stop offset="1" stop-color="#DE3552"/>
+    <linearGradient id="holo" x1="34" y1="42" x2="108" y2="104" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#8AF4FF"/>
+      <stop offset="0.6" stop-color="#A58CFF"/>
+      <stop offset="1" stop-color="#FF89CE"/>
     </linearGradient>
   </defs>
   <ellipse cx="30" cy="182" rx="22" ry="8" fill="#0C2D4A" fill-opacity="0.28"/>
   <rect x="18" y="12" width="12" height="168" rx="6" fill="url(#pole)"/>
-  <path d="M30 34C49 22 78 20 108 38V98C77 82 49 86 30 96V34Z" fill="url(#flag)"/>
-  <path d="M52 56L58 70L74 71L62 81L66 96L52 87L38 96L42 81L30 71L46 70L52 56Z" fill="#FFD95C"/>
+  <path d="M30 34C46 22 74 18 108 36V98C74 82 47 84 30 94V34Z" fill="url(#holo)"/>
+  <path d="M54 56L58 66L69 67L61 74L64 85L54 79L44 85L47 74L39 67L50 66L54 56Z" fill="#FFF4B0"/>
+  <circle cx="24" cy="18" r="6" fill="#DFF8FF"/>
 </svg>

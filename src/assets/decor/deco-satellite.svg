@@ -1,0 +1,20 @@
+<svg width="120" height="140" viewBox="0 0 120 140" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="satPanel" x1="8" y1="46" x2="44" y2="94" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#78E7FF"/>
+      <stop offset="1" stop-color="#4E6FFF"/>
+    </linearGradient>
+    <linearGradient id="satCore" x1="42" y1="44" x2="78" y2="88" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#F4F7FF"/>
+      <stop offset="1" stop-color="#A9B7D8"/>
+    </linearGradient>
+  </defs>
+  <ellipse cx="60" cy="128" rx="20" ry="8" fill="#1D275C" fill-opacity="0.24"/>
+  <rect x="6" y="48" width="34" height="44" rx="6" fill="url(#satPanel)"/>
+  <rect x="80" y="48" width="34" height="44" rx="6" fill="url(#satPanel)"/>
+  <rect x="42" y="44" width="36" height="52" rx="8" fill="url(#satCore)"/>
+  <rect x="50" y="24" width="20" height="16" rx="6" fill="#C8D5F5"/>
+  <path d="M60 16V4" stroke="#C8D5F5" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="60" cy="100" r="8" fill="#9FADCE"/>
+  <path d="M60 108V126" stroke="#9FADCE" stroke-width="4" stroke-linecap="round"/>
+</svg>

@@ -1,15 +1,25 @@
 <svg width="1024" height="512" viewBox="0 0 1024 512" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="farSky" x1="0" y1="0" x2="0" y2="512" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#BFE6FF"/>
-      <stop offset="1" stop-color="#88C3F8"/>
+    <linearGradient id="farSpace" x1="0" y1="0" x2="0" y2="512" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0A0E2D"/>
+      <stop offset="0.62" stop-color="#1A1350"/>
+      <stop offset="1" stop-color="#26145B"/>
     </linearGradient>
-    <linearGradient id="farMount" x1="0" y1="112" x2="0" y2="492" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#9EBCE9"/>
-      <stop offset="1" stop-color="#6D8CB7"/>
-    </linearGradient>
+    <radialGradient id="farPlanet" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(224 126) rotate(30) scale(170 140)">
+      <stop offset="0" stop-color="#FFD6B5"/>
+      <stop offset="1" stop-color="#9A6BFF"/>
+    </radialGradient>
   </defs>
-  <rect width="1024" height="512" fill="url(#farSky)"/>
-  <path d="M0 392L116 268L188 322L288 188L410 334L522 174L638 356L746 226L852 328L940 246L1024 342V512H0V392Z" fill="url(#farMount)"/>
-  <path d="M0 430L80 372L150 418L220 352L302 436L384 346L462 430L544 354L620 432L694 364L772 436L842 370L930 444L1024 390V512H0V430Z" fill="#7897C4"/>
+  <rect width="1024" height="512" fill="url(#farSpace)"/>
+  <circle cx="224" cy="126" r="84" fill="url(#farPlanet)" fill-opacity="0.44"/>
+  <ellipse cx="226" cy="136" rx="108" ry="26" fill="none" stroke="#E3D3FF" stroke-opacity="0.42" stroke-width="8"/>
+  <circle cx="798" cy="88" r="58" fill="#8AF4FF" fill-opacity="0.2"/>
+  <circle cx="150" cy="64" r="3" fill="#FFFFFF" fill-opacity="0.92"/>
+  <circle cx="330" cy="54" r="2.4" fill="#FFFFFF" fill-opacity="0.78"/>
+  <circle cx="472" cy="102" r="2.8" fill="#FFFFFF" fill-opacity="0.84"/>
+  <circle cx="642" cy="72" r="2.2" fill="#FFFFFF" fill-opacity="0.7"/>
+  <circle cx="876" cy="58" r="2.7" fill="#FFFFFF" fill-opacity="0.83"/>
+  <circle cx="952" cy="120" r="2" fill="#FFFFFF" fill-opacity="0.76"/>
+  <circle cx="728" cy="148" r="1.8" fill="#FFFFFF" fill-opacity="0.75"/>
+  <circle cx="542" cy="46" r="2.1" fill="#FFFFFF" fill-opacity="0.74"/>
 </svg>

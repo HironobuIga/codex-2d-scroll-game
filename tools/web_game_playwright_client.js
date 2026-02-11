@@ -1,6 +1,6 @@
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
-import { chromium } from "playwright";
 
 const MAX_ITERATIONS = 20;
 const MAX_PAUSE_MS = 5000;
@@ -19,6 +19,7 @@ const buttonNameToKey = {
   space: "Space",
   a: "KeyA",
   b: "KeyB",
+  r: "KeyR",
 };
 
 const allowedButtons = new Set([
@@ -26,6 +27,68 @@ const allowedButtons = new Set([
   "left_mouse_button",
   "right_mouse_button",
 ]);
+
+function inferMacHostPlatformForArm64() {
+  const kernelMajor = Number.parseInt(String(os.release()).split(".")[0] ?? "", 10);
+  if (!Number.isInteger(kernelMajor)) {
+    return null;
+  }
+  if (kernelMajor < 18) {
+    return "mac10.13-arm64";
+  }
+  if (kernelMajor === 18) {
+    return "mac10.14-arm64";
+  }
+  if (kernelMajor === 19) {
+    return "mac10.15-arm64";
+  }
+  // Darwin 20 roughly maps to macOS 11; for modern releases we approximate
+  // with `major = kernelMajor - 9` and clamp to known Playwright platform ids.
+  const hostMajor = Math.min(kernelMajor - 9, 15);
+  return `mac${hostMajor}-arm64`;
+}
+
+function applyPlaywrightHostPlatformOverride() {
+  if (process.env.PLAYWRIGHT_HOST_PLATFORM_OVERRIDE) {
+    return;
+  }
+  if (process.platform !== "darwin" || process.arch !== "arm64") {
+    return;
+  }
+  const cpuModels = os.cpus().map((cpu) => cpu?.model ?? "");
+  const alreadyDetectedAsAppleSilicon = cpuModels.some((model) => model.includes("Apple"));
+  if (alreadyDetectedAsAppleSilicon) {
+    return;
+  }
+  const inferred = inferMacHostPlatformForArm64();
+  if (inferred) {
+    process.env.PLAYWRIGHT_HOST_PLATFORM_OVERRIDE = inferred;
+  }
+}
+
+async function resolveChromium() {
+  applyPlaywrightHostPlatformOverride();
+
+  let lastError = null;
+  for (const moduleName of ["playwright", "playwright-core"]) {
+    try {
+      const playwrightModule = await import(moduleName);
+      if (playwrightModule?.chromium) {
+        return playwrightModule.chromium;
+      }
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  const message = [
+    "Playwright module is not installed.",
+    "Run `npm install -D playwright` in this workspace, then `npx playwright install chromium`.",
+  ].join(" ");
+  if (lastError) {
+    throw new Error(`${message} Last error: ${String(lastError)}`);
+  }
+  throw new Error(message);
+}
 
 function parseBoundedInteger(raw, fieldName, min, max) {
   const normalized = String(raw).trim();
@@ -466,6 +529,7 @@ async function doChoreography(page, canvas, steps) {
 }
 
 async function main() {
+  const chromium = await resolveChromium();
   const args = parseArgs(process.argv);
   const safeScreenshotDir = resolveSafeOutputDir(args.screenshotDir, args.safeOutputRoot);
   ensureDir(safeScreenshotDir);
