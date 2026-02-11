@@ -2,6 +2,90 @@ import { ENEMY_HEIGHT, ENEMY_WIDTH } from "../constants";
 import type { EnemySpawn } from "../level";
 import type { Rect } from "../types";
 
+export type EnemyTier = "scout" | "runner" | "hopper" | "guard" | "ace";
+
+interface EnemyTierProfile {
+  widthScale: number;
+  heightScale: number;
+  speedScale: number;
+  maxHp: number;
+  contactDamage: number;
+  jumpInterval: number;
+  jumpSpeed: number;
+  dashSpeedScale: number;
+  dashDuration: number;
+  dashCooldown: number;
+  dashRange: number;
+}
+
+const ENEMY_TIER_PROFILES: Record<EnemyTier, EnemyTierProfile> = {
+  scout: {
+    widthScale: 0.92,
+    heightScale: 0.95,
+    speedScale: 1,
+    maxHp: 1,
+    contactDamage: 1,
+    jumpInterval: 0,
+    jumpSpeed: 0,
+    dashSpeedScale: 1,
+    dashDuration: 0,
+    dashCooldown: 0,
+    dashRange: 0,
+  },
+  runner: {
+    widthScale: 0.96,
+    heightScale: 0.88,
+    speedScale: 1.32,
+    maxHp: 1,
+    contactDamage: 1,
+    jumpInterval: 0,
+    jumpSpeed: 0,
+    dashSpeedScale: 1.55,
+    dashDuration: 0.42,
+    dashCooldown: 1.8,
+    dashRange: 240,
+  },
+  hopper: {
+    widthScale: 0.88,
+    heightScale: 1.02,
+    speedScale: 1.08,
+    maxHp: 1,
+    contactDamage: 1,
+    jumpInterval: 1.4,
+    jumpSpeed: 560,
+    dashSpeedScale: 1,
+    dashDuration: 0,
+    dashCooldown: 0,
+    dashRange: 0,
+  },
+  guard: {
+    widthScale: 1.22,
+    heightScale: 1.32,
+    speedScale: 0.94,
+    maxHp: 2,
+    contactDamage: 2,
+    jumpInterval: 0,
+    jumpSpeed: 0,
+    dashSpeedScale: 1.22,
+    dashDuration: 0.28,
+    dashCooldown: 2.1,
+    dashRange: 180,
+  },
+  ace: {
+    widthScale: 1.38,
+    heightScale: 1.56,
+    speedScale: 1.24,
+    maxHp: 4,
+    contactDamage: 3,
+    jumpInterval: 1.16,
+    jumpSpeed: 620,
+    dashSpeedScale: 1.75,
+    dashDuration: 0.46,
+    dashCooldown: 1.45,
+    dashRange: 320,
+  },
+};
+
 export class Enemy {
   x: number;
   y: number;
@@ -14,13 +98,44 @@ export class Enemy {
   direction: -1 | 1;
   patrolMin: number;
   patrolMax: number;
+  tier: EnemyTier;
+  hp: number;
+  maxHp: number;
+  contactDamage: number;
+  private readonly speedScale: number;
+  private readonly jumpInterval: number;
+  private readonly jumpSpeed: number;
+  private readonly dashSpeedScale: number;
+  private readonly dashDuration: number;
+  private readonly dashCooldown: number;
+  private readonly dashRange: number;
+  private jumpTimer: number;
+  private dashTimer = 0;
+  private dashCooldownTimer: number;
+  private staggerTimer = 0;
 
-  constructor(spawn: EnemySpawn) {
+  constructor(spawn: EnemySpawn, stageNumber: number, enemyIndex: number) {
     this.x = spawn.x;
     this.y = spawn.y;
     this.direction = spawn.direction ?? 1;
     this.patrolMin = spawn.patrolMin ?? spawn.x - 180;
     this.patrolMax = spawn.patrolMax ?? spawn.x + 180;
+    this.tier = spawn.tier ?? pickEnemyTier(stageNumber, enemyIndex);
+    const profile = ENEMY_TIER_PROFILES[this.tier];
+    this.w = Math.round(ENEMY_WIDTH * profile.widthScale);
+    this.h = Math.round(ENEMY_HEIGHT * profile.heightScale);
+    this.maxHp = profile.maxHp;
+    this.hp = profile.maxHp;
+    this.contactDamage = profile.contactDamage;
+    this.speedScale = profile.speedScale;
+    this.jumpInterval = profile.jumpInterval;
+    this.jumpSpeed = profile.jumpSpeed;
+    this.dashSpeedScale = profile.dashSpeedScale;
+    this.dashDuration = profile.dashDuration;
+    this.dashCooldown = profile.dashCooldown;
+    this.dashRange = profile.dashRange;
+    this.jumpTimer = this.jumpInterval > 0 ? this.jumpInterval * (0.45 + (enemyIndex % 4) * 0.16) : 0;
+    this.dashCooldownTimer = this.dashCooldown > 0 ? (enemyIndex % 3) * 0.35 : 0;
   }
 
   rect(): Rect {
@@ -35,4 +150,80 @@ export class Enemy {
   centerX(): number {
     return this.x + this.w * 0.5;
   }
+
+  updateBehavior(dt: number, playerCenterX: number): number {
+    if (this.staggerTimer > 0) {
+      this.staggerTimer = Math.max(0, this.staggerTimer - dt);
+      return 0;
+    }
+
+    if (this.jumpInterval > 0) {
+      this.jumpTimer -= dt;
+      if (this.jumpTimer <= 0 && this.grounded) {
+        this.vy = -this.jumpSpeed;
+        this.grounded = false;
+        this.jumpTimer = this.jumpInterval;
+      }
+    }
+
+    let burstScale = 1;
+    if (this.dashSpeedScale > 1) {
+      if (this.dashTimer > 0) {
+        this.dashTimer = Math.max(0, this.dashTimer - dt);
+        burstScale = this.dashSpeedScale;
+      } else {
+        if (this.dashCooldownTimer > 0) {
+          this.dashCooldownTimer = Math.max(0, this.dashCooldownTimer - dt);
+        }
+        if (this.dashCooldownTimer <= 0 && Math.abs(playerCenterX - this.centerX()) <= this.dashRange) {
+          this.direction = playerCenterX < this.centerX() ? -1 : 1;
+          this.dashTimer = this.dashDuration;
+          this.dashCooldownTimer = this.dashCooldown;
+          burstScale = this.dashSpeedScale;
+        }
+      }
+    }
+
+    return this.speedScale * burstScale;
+  }
+
+  applyStompDamage(): boolean {
+    this.hp = Math.max(0, this.hp - 1);
+    if (this.hp === 0) {
+      this.alive = false;
+      return true;
+    }
+    this.staggerTimer = 0.28;
+    this.direction *= -1;
+    return false;
+  }
+
+  isDashing(): boolean {
+    return this.dashTimer > 0;
+  }
+}
+
+function pickEnemyTier(stageNumber: number, enemyIndex: number): EnemyTier {
+  if (stageNumber <= 1) {
+    return "scout";
+  }
+  if (stageNumber === 2) {
+    return enemyIndex % 3 === 0 ? "runner" : "scout";
+  }
+  if (stageNumber === 3) {
+    return enemyIndex % 2 === 0 ? "hopper" : "runner";
+  }
+  if (stageNumber === 4) {
+    if (enemyIndex % 3 === 0) {
+      return "guard";
+    }
+    return enemyIndex % 2 === 0 ? "hopper" : "runner";
+  }
+  if (enemyIndex % 4 === 0) {
+    return "ace";
+  }
+  if (enemyIndex % 2 === 0) {
+    return "guard";
+  }
+  return "hopper";
 }

@@ -17,7 +17,62 @@ Original prompt: 現在のプロジェクト設定をベースに2dスクロー�
 - Attempted `npm install -D playwright` for automated screenshot checks; blocked by network (`ENOTFOUND registry.npmjs.org`).
 - Tuned jump/movement (`PLAYER_JUMP_SPEED`, `PLAYER_MAX_SPEED_X`) and inserted a mid-step platform at `x:610,y:395` so upper routes are reachable.
 - Applied security hardening patch set: baseline CSP meta, test-hook exposure gating, and stricter Playwright helper validation (URL allowlist, safe output root, action budget limits).
+- Reworked `src/game/level.ts` into a stage generator and expanded content to `stage1` through `stage5` with increasing width, platform density, enemy count, and per-stage title metadata.
+- Updated `Game` flow for stage progression: clear state now advances to next stage (up to stage 5), start button action is mode-aware, and HUD/test-text now include stage information.
+- Refreshed game visuals to a space theme: cosmic background rendering, sci-fi platform/ground tiles, space decorations (planet/UFO/satellite), and a cute alien enemy sprite.
+- Validation updated: `npm run build` succeeds after stage/theme changes.
+- Validation retry: `node tools/web_game_playwright_client.js --help` still fails due missing `playwright`; installing dependency also still blocked by `ENOTFOUND registry.npmjs.org`.
+- Resolved Playwright dependency by installing `playwright` as a devDependency and downloading Chromium binaries via `npx playwright install chromium`.
+- Fixed architecture mismatch in `tools/web_game_playwright_client.js` by adding a pre-import host platform override path for Apple Silicon environments where Playwright auto-detects x64.
+- Validation updated: `node tools/web_game_playwright_client.js --url http://127.0.0.1:4173 ...` now executes successfully and writes artifacts under `output/playwright/`.
+- Rebuilt stage design from procedural variants to five hand-authored stage identities with unique geometry and routing patterns:
+  - Stage1: standard horizontal route
+  - Stage2: segmented ground + reverse wind
+  - Stage3: vertical climb tower
+  - Stage4: low-gravity floating-island traversal
+  - Stage5: high-gravity, high-speed enemy gauntlet
+- Added stage-scoped `backgroundStyle`, `theme`, `physics`, and `tagline` metadata to `LevelData`, and connected them to runtime movement/combat parameters.
+- Updated renderer to switch background effects per stage (`nebula`, `cometStorm`, `orbitalGrid`, `lunarMist`, `redAlert`) and apply stage-specific HUD/solid tinting.
+- Validation updated: `npm run build` passes after stage uniqueness overhaul.
+- Validation updated: Playwright smoke run succeeds after changes (`output/playwright-stagecheck/*` generated); only existing CSP source warnings were observed.
+- Added enemy progression system with per-stage tiering and richer behavior (`scout` -> `runner` -> `hopper` -> `guard` -> `ace`), including dash bursts, jump AI, armor HP, and higher contact damage in later stages.
+- Updated stomp/combat logic so high-tier enemies require multiple stomps and award extra points; player knockback/damage now scales by enemy strength.
+- Updated enemy rendering and text-state output to surface tier/HP/dash status for debugging and balancing.
+- Validation updated: `npm run build` passes and Playwright smoke run succeeds after enemy behavior changes (`output/playwright-enemy-balance/*` generated).
+- Ran `imagegen` batch generation via `~/.codex/skills/imagegen/scripts/image_gen.py` and produced new hero/enemy PNG sprites under `output/imagegen/`.
+- Integrated generated character sprites into runtime assets by switching `src/game/assets.ts` imports from SVG to PNG and adding `src/assets/sprites/hero-idle.png`, `src/assets/sprites/hero-air.png`, and `src/assets/sprites/enemy-slime.png`.
+- Post-processed generated sprites (transparent trim + size optimization) to reduce canvas whitespace and improve in-game readability at current draw scales.
+- Updated sprite rendering to keep image aspect ratio and anchor by feet position; enemy visual scale now increases with HP tier to match combat threat.
+- Validation updated: `npm run build` succeeds and Playwright checks confirm updated character visuals (`output/playwright-character-refresh*`, `output/playwright-character-enemy-check/*`); only existing CSP source warnings remain.
+- Added dedicated movement sprites: `src/assets/sprites/hero-move.png` (from existing air pose) and `src/assets/sprites/enemy-move.png` (trimmed from `output/imagegen/002-enemy-slime-sprite-for-side-scroller-platformer-cute-but-dan.png`).
+- Extended `GameAssets` and loader imports to include `heroMove` / `enemyMove`, while preserving existing idle/air assets.
+- Updated renderer switching logic:
+  - Player uses `heroMove` when grounded and horizontal speed is above a threshold.
+  - Enemy uses `enemyMove` when moving/dashing/airborne, falls back to idle sprite when stationary.
+- Validation updated: `npm run build` passes and Playwright captures show move-sprite swaps in motion (`output/playwright-move-sprites/*`, `output/playwright-move-sprites-long/*`); only existing CSP source warnings remain.
+- Added facing-direction support:
+  - `Player` now tracks `facing` and updates it from input, horizontal velocity, and knockback.
+  - `render_game_to_text` now emits `player.facing` for deterministic test inspection.
+- Updated sprite draw helper to support horizontal flip and applied it to both player and enemies, so right/left movement visibly changes orientation while reusing movement sprites.
+- Validation updated: `npm run build` passes and Playwright runs confirm direction switching (`output/playwright-facing-right/*`, `output/playwright-facing-left/*`, `output/playwright-facing-both/*`); only existing CSP source warnings remain.
+- Ran `imagegen` batch for 5 new enemy archetypes and generated tier-specific sprites:
+  - `src/assets/sprites/enemy-scout.png`
+  - `src/assets/sprites/enemy-runner.png`
+  - `src/assets/sprites/enemy-hopper.png`
+  - `src/assets/sprites/enemy-guard.png`
+  - `src/assets/sprites/enemy-ace.png`
+- Extended `GameAssets` to load all five tier sprites and updated enemy rendering to map sprite by tier instead of a single shared enemy image.
+- Expanded enemy tier profiles with size scaling (`w`/`h` per tier) and stronger late-tier stats (`ace` now larger and higher HP/contact damage).
+- Added a new attack pattern for `ace`: ranged projectiles (`enemyShots`) with update, collision, and rendering pipelines.
+- Updated text-state output to include active enemy projectiles for deterministic test/debug visibility.
+- Validation updated: `npm run build` passes after 5-enemy + projectile integration. Playwright checks ran for quick regression (`output/playwright-enemy-variants-stage1/*`, `output/playwright-enemy-variants-stage5/*`), though the current stage5 action burst still dies in stage1 before reaching later-tier encounters; only existing CSP source warnings were observed.
+- Rebalanced enemy lane pressure (upper vs lower routes) in Stage1/2/4/5 by redistributing spawn points and adjusting tier mix so one route is not consistently overloaded.
+- Validation updated: `npm run build` passes after lane rebalance and Playwright smoke still passes (`output/playwright-lane-rebalance/*`), with only pre-existing CSP warnings.
+- Added game-over recovery option for falls: users can now retry from the same stage (`Retry Stage` button / `R` key) instead of always restarting from Stage 1.
+- Added fall-vs-defeat game-over reason tracking and stage-start score snapshot so stage retry resets the current stage state cleanly while preserving run structure.
+- Validation updated: `npm run build` passes and Playwright confirms fall -> gameover(reason=fall) -> `R` retry returns to `mode=playing` at stage spawn (`output/playwright-fall-option/*`, `output/playwright-fall-retry-keyr/*`); only existing CSP source warnings remain.
 
 ## TODO
-- Install `playwright` package and browser binaries, then run the scripted gameplay screenshots.
-- If AI-generated bitmap assets are desired, set `OPENAI_API_KEY` and run `~/.codex/skills/imagegen/scripts/image_gen.py`.
+- Run deeper Playwright scenarios that intentionally clear Stage1->Stage5 and confirm every transition overlay/path is reachable.
+- Investigate CSP console warnings in automated runs (`ws://[::1]:*`, `wss://[::1]:*` entries are currently flagged as invalid sources by Chromium).
+- If further art direction iteration is needed, rerun `~/.codex/skills/imagegen/scripts/image_gen.py` with tightened per-stage character prompt variants and swap assets via `src/game/assets.ts`.

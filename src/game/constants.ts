@@ -4,7 +4,7 @@ export const FIXED_DT = 1 / 60;
 
 export const PLAYER_WIDTH = 34;
 export const PLAYER_HEIGHT = 48;
-export const PLAYER_MAX_HP = 3;
+export const PLAYER_MAX_HP = 10;
 export const PLAYER_GROUND_ACCEL = 2400;
 export const PLAYER_AIR_ACCEL = 1800;
 export const PLAYER_MAX_SPEED_X = 320;

@@ -1,0 +1,18 @@
+<svg width="160" height="160" viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="planetBody" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(56 44) rotate(42) scale(86)">
+      <stop offset="0" stop-color="#FFD79B"/>
+      <stop offset="0.55" stop-color="#B98BFF"/>
+      <stop offset="1" stop-color="#6D55D7"/>
+    </radialGradient>
+    <linearGradient id="planetRing" x1="20" y1="86" x2="142" y2="70" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#E3EEFF" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#89C9FF" stop-opacity="0.82"/>
+    </linearGradient>
+  </defs>
+  <ellipse cx="80" cy="82" rx="58" ry="56" fill="url(#planetBody)"/>
+  <ellipse cx="80" cy="86" rx="74" ry="18" fill="none" stroke="url(#planetRing)" stroke-width="8"/>
+  <ellipse cx="63" cy="64" rx="17" ry="10" fill="#FFE7B5" fill-opacity="0.48"/>
+  <ellipse cx="102" cy="102" rx="22" ry="12" fill="#D1B5FF" fill-opacity="0.38"/>
+  <circle cx="118" cy="48" r="5" fill="#FFF5D4" fill-opacity="0.88"/>
+</svg>

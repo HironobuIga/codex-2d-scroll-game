@@ -10,6 +10,7 @@ export class Player {
   y = 0;
   w = PLAYER_WIDTH;
   h = PLAYER_HEIGHT;
+  facing: -1 | 1 = 1;
   vx = 0;
   vy = 0;
   hp = PLAYER_MAX_HP;
@@ -23,6 +24,7 @@ export class Player {
   reset(spawn: Vec2): void {
     this.x = spawn.x;
     this.y = spawn.y;
+    this.facing = 1;
     this.vx = 0;
     this.vy = 0;
     this.hp = PLAYER_MAX_HP;

@@ -15,8 +15,9 @@ declare global {
 const shell = document.querySelector<HTMLDivElement>("#game-shell");
 const canvas = document.querySelector<HTMLCanvasElement>("#game-canvas");
 const startButton = document.querySelector<HTMLButtonElement>("#start-btn");
+const retryStageButton = document.querySelector<HTMLButtonElement>("#retry-stage-btn");
 
-if (!shell || !canvas || !startButton) {
+if (!shell || !canvas || !startButton || !retryStageButton) {
   throw new Error("Required DOM nodes were not found.");
 }
 
@@ -42,8 +43,13 @@ void loadGameAssets()
   });
 
 startButton.addEventListener("click", () => {
-  game.startRun();
+  game.activatePrimaryAction();
   startButton.blur();
+});
+
+retryStageButton.addEventListener("click", () => {
+  game.activateRetryStageAction();
+  retryStageButton.blur();
 });
 
 window.addEventListener("keydown", (event) => {
@@ -71,7 +77,7 @@ const stepFrame = (): void => {
 
 const drawFrame = (): void => {
   game.render(context);
-  syncStartButton(startButton, game);
+  syncMenuButtons(startButton, retryStageButton, game);
 };
 
 const advanceTimeForTests = async (ms: number): Promise<void> => {
@@ -119,9 +125,15 @@ window.addEventListener("beforeunload", () => {
   input.destroy(window);
 });
 
-function syncStartButton(button: HTMLButtonElement, activeGame: Game): void {
-  button.hidden = !activeGame.shouldShowStartButton();
-  button.textContent = activeGame.startButtonLabel();
+function syncMenuButtons(
+  primaryButton: HTMLButtonElement,
+  retryButton: HTMLButtonElement,
+  activeGame: Game,
+): void {
+  primaryButton.hidden = !activeGame.shouldShowStartButton();
+  primaryButton.textContent = activeGame.startButtonLabel();
+  retryButton.hidden = !activeGame.shouldShowRetryStageButton();
+  retryButton.textContent = activeGame.retryStageButtonLabel();
 }
 
 function resizeCanvasDisplay(container: HTMLElement, targetCanvas: HTMLCanvasElement): void {

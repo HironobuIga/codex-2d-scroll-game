@@ -1,10 +1,27 @@
 import type { Camera } from "./camera";
+import type { GameAssets } from "./assets";
 import type { Coin } from "./entities/Coin";
 import type { Enemy } from "./entities/Enemy";
 import type { Player } from "./entities/Player";
-import type { DecorationLayer, DecorationSpawn } from "./level";
+import type {
+  DecorationLayer,
+  DecorationSpawn,
+  StageBackgroundStyle,
+  StageVisualTheme,
+} from "./level";
 import type { Rect } from "./types";
-import type { GameAssets } from "./assets";
+
+const DEFAULT_THEME: StageVisualTheme = {
+  skyTop: "#070a1f",
+  skyMid: "#130f37",
+  skyBottom: "#23164a",
+  nebula: ["#4b7fff", "#b86fff", "#58d8ff"],
+  haze: "#9e7dff",
+  star: "#ffffff",
+  solidOverlay: "#8af7ff",
+  hudStroke: "#7ddbff",
+  hudPanel: "#081133",
+};
 
 export function drawBackground(
   ctx: CanvasRenderingContext2D,
@@ -13,44 +30,47 @@ export function drawBackground(
   height: number,
   elapsedSeconds: number,
   assets?: GameAssets,
+  backgroundStyle: StageBackgroundStyle = "nebula",
+  theme: StageVisualTheme = DEFAULT_THEME,
 ): void {
+  const activeTheme = theme ?? DEFAULT_THEME;
+
   const gradient = ctx.createLinearGradient(0, 0, 0, height);
-  gradient.addColorStop(0, "#86b6ff");
-  gradient.addColorStop(0.65, "#9ed5ff");
-  gradient.addColorStop(1, "#daf4ff");
+  gradient.addColorStop(0, activeTheme.skyTop);
+  gradient.addColorStop(0.55, activeTheme.skyMid);
+  gradient.addColorStop(1, activeTheme.skyBottom);
   ctx.fillStyle = gradient;
   ctx.fillRect(0, 0, width, height);
 
-  if (assets) {
-    drawParallaxLayer(ctx, assets.backgroundFar, cameraX, 0.16, 0.72, -118, 0.85);
-    drawParallaxLayer(ctx, assets.backgroundMid, cameraX, 0.36, 0.76, -62, 0.9);
-    drawParallaxLayer(ctx, assets.backgroundNear, cameraX, 0.62, 0.8, -12, 0.96);
+  if (backgroundStyle === "cometStorm") {
+    drawCometStorm(ctx, width, height, cameraX, elapsedSeconds, activeTheme);
+  } else if (backgroundStyle === "orbitalGrid") {
+    drawOrbitalGrid(ctx, width, height, cameraX, elapsedSeconds, activeTheme);
+  } else if (backgroundStyle === "lunarMist") {
+    drawLunarMist(ctx, width, height, cameraX, elapsedSeconds, activeTheme);
+  } else if (backgroundStyle === "redAlert") {
+    drawRedAlertBands(ctx, width, height, cameraX, elapsedSeconds, activeTheme);
   } else {
-    const layers = [
-      { color: "#d4e9ff", speed: 0.2, baseY: height - 220, amp: 22, wave: 0.02, width: 300 },
-      { color: "#a6d2ff", speed: 0.45, baseY: height - 160, amp: 28, wave: 0.019, width: 260 },
-      { color: "#79b8ff", speed: 0.75, baseY: height - 104, amp: 26, wave: 0.018, width: 220 },
-    ];
+    drawNebulaBands(ctx, width, height, cameraX, elapsedSeconds, activeTheme);
+  }
 
-    for (const layer of layers) {
-      const shift = -(cameraX * layer.speed) % layer.width;
-      ctx.fillStyle = layer.color;
-      for (let x = shift - layer.width; x < width + layer.width; x += layer.width) {
-        const wave = Math.sin((x + elapsedSeconds * 80) * layer.wave) * layer.amp;
-        ctx.beginPath();
-        ctx.moveTo(x, height);
-        ctx.lineTo(x + layer.width * 0.15, layer.baseY + wave);
-        ctx.lineTo(x + layer.width * 0.52, layer.baseY - layer.amp * 1.4);
-        ctx.lineTo(x + layer.width, height);
-        ctx.closePath();
-        ctx.fill();
-      }
+  if (assets) {
+    if (backgroundStyle === "orbitalGrid") {
+      drawParallaxLayer(ctx, assets.backgroundFar, cameraX, 0.08, 0.9, -232, 0.68);
+      drawParallaxLayer(ctx, assets.backgroundMid, cameraX, 0.18, 0.92, -182, 0.78);
+      drawParallaxLayer(ctx, assets.backgroundNear, cameraX, 0.3, 0.94, -118, 0.86);
+    } else {
+      drawParallaxLayer(ctx, assets.backgroundFar, cameraX, 0.12, 0.92, -252, 0.78);
+      drawParallaxLayer(ctx, assets.backgroundMid, cameraX, 0.22, 0.92, -194, 0.84);
+      drawParallaxLayer(ctx, assets.backgroundNear, cameraX, 0.36, 0.94, -122, 0.9);
     }
   }
 
-  ctx.fillStyle = "rgba(235, 249, 255, 0.22)";
-  const shimmerY = height - 170 + Math.sin(elapsedSeconds * 1.4) * 8;
-  ctx.fillRect(0, shimmerY, width, 24);
+  drawStarfield(ctx, width, height, cameraX, elapsedSeconds, activeTheme);
+
+  ctx.fillStyle = toRgba(activeTheme.haze, 0.16);
+  const hazeY = height - 96 + Math.sin(elapsedSeconds * 1.3) * 6;
+  ctx.fillRect(0, hazeY, width, 44);
 }
 
 export function drawDecorations(
@@ -80,7 +100,10 @@ export function drawSolids(
   camera: Camera,
   solids: Rect[],
   assets?: GameAssets,
+  theme: StageVisualTheme = DEFAULT_THEME,
 ): void {
+  const activeTheme = theme ?? DEFAULT_THEME;
+
   for (const solid of solids) {
     const sx = Math.floor(solid.x - camera.x);
     const sy = Math.floor(solid.y - camera.y);
@@ -89,11 +112,20 @@ export function drawSolids(
     if (tile && isLoaded(tile)) {
       drawTiledSprite(ctx, tile, sx, sy, solid.w, solid.h);
     } else {
-      ctx.fillStyle = isGround ? "#5b4f42" : "#6c554b";
+      const baseColor = isGround ? "#2c1f4e" : "#2b3559";
+      const topColor = isGround ? "#8af7ff" : "#98d0ff";
+      ctx.fillStyle = baseColor;
       ctx.fillRect(sx, sy, solid.w, solid.h);
-      ctx.fillStyle = isGround ? "#78b44e" : "#8ccb72";
-      ctx.fillRect(sx, sy, solid.w, Math.min(8, solid.h));
+      ctx.fillStyle = topColor;
+      ctx.fillRect(sx, sy, solid.w, Math.min(7, solid.h));
+      ctx.fillStyle = "rgba(255, 255, 255, 0.16)";
+      for (let offset = 8; offset < solid.w; offset += 24) {
+        ctx.fillRect(sx + offset, sy + 10, 8, Math.max(3, solid.h - 14));
+      }
     }
+
+    ctx.fillStyle = toRgba(activeTheme.solidOverlay, isGround ? 0.2 : 0.28);
+    ctx.fillRect(sx, sy, solid.w, solid.h);
   }
 }
 
@@ -114,11 +146,11 @@ export function drawCoins(
       ctx.drawImage(assets.coin, cx - size * 0.5, cy - size * 0.5, size, size);
     } else {
       ctx.beginPath();
-      ctx.fillStyle = "#ffd447";
+      ctx.fillStyle = "#ffd570";
       ctx.arc(cx, cy, coin.r, 0, Math.PI * 2);
       ctx.fill();
       ctx.beginPath();
-      ctx.strokeStyle = "#ffec96";
+      ctx.strokeStyle = "#fff6bf";
       ctx.lineWidth = 2;
       ctx.arc(cx, cy, coin.r - 3, 0, Math.PI * 2);
       ctx.stroke();
@@ -138,20 +170,108 @@ export function drawEnemies(
     }
     const sx = enemy.x - camera.x;
     const sy = enemy.y - camera.y;
-    if (assets?.enemySlime && isLoaded(assets.enemySlime)) {
-      const drawW = enemy.w + 12;
-      const drawH = enemy.h + 10;
-      ctx.drawImage(assets.enemySlime, sx - 6, sy - 6, drawW, drawH);
+    const isMoving = Math.abs(enemy.vx) > 28 || enemy.isDashing() || !enemy.grounded;
+    const enemySprite = pickEnemySprite(enemy, assets, isMoving);
+    if (enemySprite && isLoaded(enemySprite)) {
+      const enemyFacing: -1 | 1 = Math.abs(enemy.vx) > 4 ? (enemy.vx > 0 ? 1 : -1) : enemy.direction;
+      const sizeScale = pickEnemySizeScale(enemy);
+      drawSpriteBottomCenter(
+        ctx,
+        enemySprite,
+        sx + enemy.w * 0.5,
+        sy + enemy.h + 4,
+        enemy.h * sizeScale,
+        enemyFacing,
+      );
     } else {
-      ctx.fillStyle = "#d45c5c";
-      ctx.fillRect(sx, sy, enemy.w, enemy.h);
+      const bodyX = sx + enemy.w * 0.5;
+      const bodyY = sy + enemy.h * 0.5;
+      const tint = enemy.maxHp >= 3 ? "#ff8d95" : enemy.maxHp === 2 ? "#ffd18f" : "#72ffbe";
+      ctx.fillStyle = tint;
+      ctx.beginPath();
+      ctx.ellipse(bodyX, bodyY, enemy.w * 0.56, enemy.h * 0.55, 0, 0, Math.PI * 2);
+      ctx.fill();
       ctx.fillStyle = "#ffffff";
-      ctx.fillRect(sx + 8, sy + 8, 8, 6);
-      ctx.fillRect(sx + enemy.w - 16, sy + 8, 8, 6);
-      ctx.fillStyle = "#2e1a1a";
-      ctx.fillRect(sx + 11, sy + 10, 3, 3);
-      ctx.fillRect(sx + enemy.w - 13, sy + 10, 3, 3);
+      ctx.beginPath();
+      ctx.arc(bodyX - 9, bodyY - 4, 5, 0, Math.PI * 2);
+      ctx.arc(bodyX + 9, bodyY - 4, 5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = "#223142";
+      ctx.beginPath();
+      ctx.arc(bodyX - 9, bodyY - 4, 2.2, 0, Math.PI * 2);
+      ctx.arc(bodyX + 9, bodyY - 4, 2.2, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "#223142";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(bodyX, bodyY + 3, 8, 0.2, Math.PI - 0.2);
+      ctx.stroke();
+      ctx.fillStyle = "#9dffe0";
+      ctx.beginPath();
+      ctx.arc(bodyX - 14, bodyY - 16, 4, 0, Math.PI * 2);
+      ctx.arc(bodyX + 14, bodyY - 16, 4, 0, Math.PI * 2);
+      ctx.fill();
     }
+
+    if (enemy.isDashing()) {
+      ctx.fillStyle = "rgba(255, 255, 255, 0.24)";
+      const trailDir = enemy.direction > 0 ? -1 : 1;
+      ctx.beginPath();
+      ctx.ellipse(
+        sx + enemy.w * 0.5 + trailDir * 14,
+        sy + enemy.h * 0.52,
+        enemy.w * 0.58,
+        enemy.h * 0.44,
+        0,
+        0,
+        Math.PI * 2,
+      );
+      ctx.fill();
+    }
+
+    if (enemy.maxHp > 1) {
+      const barW = enemy.w + 10;
+      const barH = 5;
+      const bx = sx - 5;
+      const by = sy - 10;
+      ctx.fillStyle = "rgba(7, 12, 26, 0.75)";
+      ctx.fillRect(bx, by, barW, barH);
+      ctx.fillStyle = enemy.maxHp >= 3 ? "#ff8d95" : "#ffd26e";
+      ctx.fillRect(bx, by, (barW * enemy.hp) / enemy.maxHp, barH);
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.45)";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(bx, by, barW, barH);
+    }
+  }
+}
+
+export function drawEnemyShots(
+  ctx: CanvasRenderingContext2D,
+  camera: Camera,
+  enemyShots: Array<{ x: number; y: number; r: number; vx: number }>,
+): void {
+  for (const shot of enemyShots) {
+    const sx = shot.x - camera.x;
+    const sy = shot.y - camera.y;
+    const grad = ctx.createRadialGradient(sx, sy, shot.r * 0.2, sx, sy, shot.r * 2.1);
+    grad.addColorStop(0, "rgba(255, 240, 180, 1)");
+    grad.addColorStop(0.45, "rgba(255, 190, 80, 0.95)");
+    grad.addColorStop(1, "rgba(255, 130, 60, 0)");
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(sx, sy, shot.r * 2.1, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = "#ffe09a";
+    ctx.beginPath();
+    ctx.arc(sx, sy, shot.r, 0, Math.PI * 2);
+    ctx.fill();
+
+    const trail = shot.vx >= 0 ? -1 : 1;
+    ctx.fillStyle = "rgba(255, 230, 170, 0.65)";
+    ctx.beginPath();
+    ctx.ellipse(sx + trail * shot.r * 1.25, sy, shot.r * 1.4, shot.r * 0.74, 0, 0, Math.PI * 2);
+    ctx.fill();
   }
 }
 
@@ -164,15 +284,26 @@ export function drawPlayer(
   const sx = player.x - camera.x;
   const sy = player.y - camera.y;
   const isAirPose = !player.grounded && Math.abs(player.vy) > 40;
-  const sprite = isAirPose ? assets?.heroAir : assets?.heroIdle;
+  const isMovingOnGround = player.grounded && Math.abs(player.vx) > 28;
+  const sprite = isAirPose ? assets?.heroAir : isMovingOnGround ? assets?.heroMove ?? assets?.heroIdle : assets?.heroIdle;
   if (sprite && isLoaded(sprite)) {
-    ctx.drawImage(sprite, sx - 12, sy - 14, player.w + 24, player.h + 26);
-  } else {
-    ctx.fillStyle = "#3f7be0";
-    ctx.fillRect(sx, sy, player.w, player.h);
-    ctx.fillStyle = "#d8eeff";
-    ctx.fillRect(sx + 8, sy + 10, player.w - 16, 8);
+    const playerFacing = player.facing;
+    const poseScale = isAirPose ? 2.02 : isMovingOnGround ? 1.98 : 1.94;
+    drawSpriteBottomCenter(
+      ctx,
+      sprite,
+      sx + player.w * 0.5,
+      sy + player.h + 6,
+      player.h * poseScale,
+      playerFacing,
+    );
+    return;
   }
+
+  ctx.fillStyle = "#4fa3ff";
+  ctx.fillRect(sx, sy, player.w, player.h);
+  ctx.fillStyle = "#dff5ff";
+  ctx.fillRect(sx + 7, sy + 9, player.w - 14, 8);
 }
 
 export function drawGoal(
@@ -185,17 +316,18 @@ export function drawGoal(
   const sy = goal.y - camera.y;
   if (assets?.goalFlag && isLoaded(assets.goalFlag)) {
     ctx.drawImage(assets.goalFlag, sx - 20, sy - 96, 124, 178);
-  } else {
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(sx, sy, 4, goal.h);
-    ctx.fillStyle = "#ff584f";
-    ctx.beginPath();
-    ctx.moveTo(sx + 4, sy);
-    ctx.lineTo(sx + goal.w, sy + 12);
-    ctx.lineTo(sx + 4, sy + 24);
-    ctx.closePath();
-    ctx.fill();
+    return;
   }
+
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(sx, sy, 4, goal.h);
+  ctx.fillStyle = "#ff7b8f";
+  ctx.beginPath();
+  ctx.moveTo(sx + 4, sy);
+  ctx.lineTo(sx + goal.w, sy + 12);
+  ctx.lineTo(sx + 4, sy + 24);
+  ctx.closePath();
+  ctx.fill();
 }
 
 export function drawHud(
@@ -204,16 +336,32 @@ export function drawHud(
   hp: number,
   collectedCoins: number,
   totalCoins: number,
+  stageNumber: number,
+  totalStages: number,
+  stageTitle: string,
+  stageTagline: string,
+  theme: StageVisualTheme = DEFAULT_THEME,
 ): void {
-  ctx.fillStyle = "rgba(7, 28, 53, 0.82)";
-  ctx.fillRect(14, 14, 268, 80);
-  ctx.strokeStyle = "rgba(165, 222, 255, 0.56)";
-  ctx.strokeRect(14, 14, 268, 80);
-  ctx.fillStyle = "#f4fcff";
+  const activeTheme = theme ?? DEFAULT_THEME;
+
+  ctx.fillStyle = toRgba(activeTheme.hudPanel, 0.82);
+  ctx.fillRect(14, 14, 590, 108);
+  ctx.strokeStyle = toRgba(activeTheme.hudStroke, 0.72);
+  ctx.strokeRect(14, 14, 590, 108);
+
+  ctx.fillStyle = "#f6f8ff";
   ctx.font = "700 18px 'Trebuchet MS', sans-serif";
-  ctx.fillText(`Score ${score}`, 28, 40);
-  ctx.fillText(`HP ${hp}`, 28, 66);
-  ctx.fillText(`Coins ${collectedCoins}/${totalCoins}`, 132, 66);
+  ctx.fillText(`Stage ${stageNumber}/${totalStages} - ${stageTitle}`, 28, 40);
+
+  ctx.font = "600 14px 'Trebuchet MS', sans-serif";
+  ctx.fillStyle = "#def2ff";
+  ctx.fillText(stageTagline, 28, 62);
+
+  ctx.font = "700 17px 'Trebuchet MS', sans-serif";
+  ctx.fillStyle = "#f6f8ff";
+  ctx.fillText(`Score ${score}`, 28, 92);
+  ctx.fillText(`HP ${hp}`, 196, 92);
+  ctx.fillText(`Coins ${collectedCoins}/${totalCoins}`, 286, 92);
 }
 
 export function drawOverlay(
@@ -222,20 +370,20 @@ export function drawOverlay(
   subtitle: string,
   helperText?: string,
 ): void {
-  ctx.fillStyle = "rgba(8, 17, 32, 0.6)";
+  ctx.fillStyle = "rgba(6, 8, 22, 0.65)";
   ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
 
   ctx.fillStyle = "#ffffff";
   ctx.textAlign = "center";
-  ctx.font = "700 52px 'Trebuchet MS', sans-serif";
+  ctx.font = "700 50px 'Trebuchet MS', sans-serif";
   ctx.fillText(title, ctx.canvas.width * 0.5, ctx.canvas.height * 0.42);
   ctx.font = "700 22px 'Trebuchet MS', sans-serif";
-  ctx.fillStyle = "#ddf3ff";
+  ctx.fillStyle = "#d7f1ff";
   ctx.fillText(subtitle, ctx.canvas.width * 0.5, ctx.canvas.height * 0.53);
 
   if (helperText) {
     ctx.font = "600 16px 'Trebuchet MS', sans-serif";
-    ctx.fillStyle = "#ecf8ff";
+    ctx.fillStyle = "#f3f8ff";
     ctx.fillText(helperText, ctx.canvas.width * 0.5, ctx.canvas.height * 0.62);
   }
   ctx.textAlign = "left";
@@ -243,6 +391,28 @@ export function drawOverlay(
 
 function isLoaded(image: HTMLImageElement): boolean {
   return image.complete && image.naturalWidth > 0;
+}
+
+function drawSpriteBottomCenter(
+  ctx: CanvasRenderingContext2D,
+  image: HTMLImageElement,
+  centerX: number,
+  bottomY: number,
+  drawHeight: number,
+  facing: -1 | 1 = 1,
+): void {
+  const aspect = image.width / image.height;
+  const drawWidth = drawHeight * aspect;
+  if (facing >= 0) {
+    ctx.drawImage(image, centerX - drawWidth * 0.5, bottomY - drawHeight, drawWidth, drawHeight);
+    return;
+  }
+
+  ctx.save();
+  ctx.translate(centerX, 0);
+  ctx.scale(-1, 1);
+  ctx.drawImage(image, -drawWidth * 0.5, bottomY - drawHeight, drawWidth, drawHeight);
+  ctx.restore();
 }
 
 function drawParallaxLayer(
@@ -291,16 +461,61 @@ function pickDecorationSprite(
   if (!assets) {
     return null;
   }
-  if (type === "tree" && isLoaded(assets.decoTree)) {
-    return assets.decoTree;
+  if (type === "planet" && isLoaded(assets.decoPlanet)) {
+    return assets.decoPlanet;
   }
-  if (type === "crystal" && isLoaded(assets.decoCrystal)) {
-    return assets.decoCrystal;
+  if (type === "ufo" && isLoaded(assets.decoUfo)) {
+    return assets.decoUfo;
   }
-  if (type === "ruin" && isLoaded(assets.decoRuin)) {
-    return assets.decoRuin;
+  if (type === "satellite" && isLoaded(assets.decoSatellite)) {
+    return assets.decoSatellite;
   }
   return null;
+}
+
+function pickEnemySprite(
+  enemy: Enemy,
+  assets: GameAssets | undefined,
+  isMoving: boolean,
+): HTMLImageElement | null {
+  if (!assets) {
+    return null;
+  }
+  if (enemy.tier === "scout") {
+    return assets.enemyScout;
+  }
+  if (enemy.tier === "runner") {
+    return isMoving ? assets.enemyRunner : assets.enemyScout;
+  }
+  if (enemy.tier === "hopper") {
+    return assets.enemyHopper;
+  }
+  if (enemy.tier === "guard") {
+    return assets.enemyGuard;
+  }
+  if (enemy.tier === "ace") {
+    return assets.enemyAce;
+  }
+  return isMoving ? assets.enemyMove : assets.enemySlime;
+}
+
+function pickEnemySizeScale(enemy: Enemy): number {
+  if (enemy.tier === "scout") {
+    return 0.98;
+  }
+  if (enemy.tier === "runner") {
+    return 1.02;
+  }
+  if (enemy.tier === "hopper") {
+    return 1.1;
+  }
+  if (enemy.tier === "guard") {
+    return 1.22;
+  }
+  if (enemy.tier === "ace") {
+    return 1.36;
+  }
+  return 1.1;
 }
 
 function drawDecorationFallback(
@@ -309,34 +524,270 @@ function drawDecorationFallback(
   x: number,
   y: number,
 ): void {
-  if (decoration.type === "tree") {
-    ctx.fillStyle = "#1e4d2f";
-    ctx.fillRect(x + decoration.w * 0.45, y + decoration.h * 0.62, decoration.w * 0.1, decoration.h * 0.38);
-    ctx.fillStyle = "#3f8b4c";
+  if (decoration.type === "planet") {
+    ctx.fillStyle = "#8f8dff";
+    ctx.beginPath();
+    ctx.arc(x + decoration.w * 0.5, y + decoration.h * 0.5, decoration.w * 0.36, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.strokeStyle = "rgba(222, 211, 255, 0.8)";
+    ctx.lineWidth = Math.max(2, decoration.w * 0.04);
     ctx.beginPath();
     ctx.ellipse(
       x + decoration.w * 0.5,
-      y + decoration.h * 0.44,
-      decoration.w * 0.36,
-      decoration.h * 0.32,
+      y + decoration.h * 0.52,
+      decoration.w * 0.46,
+      decoration.h * 0.15,
+      -0.1,
+      0,
+      Math.PI * 2,
+    );
+    ctx.stroke();
+    return;
+  }
+
+  if (decoration.type === "ufo") {
+    ctx.fillStyle = "#a0f3ff";
+    ctx.beginPath();
+    ctx.ellipse(
+      x + decoration.w * 0.5,
+      y + decoration.h * 0.42,
+      decoration.w * 0.26,
+      decoration.h * 0.2,
       0,
       0,
       Math.PI * 2,
     );
     ctx.fill();
-    return;
-  }
-  if (decoration.type === "crystal") {
-    ctx.fillStyle = "#7ce8ff";
+
+    ctx.fillStyle = "#8db4ff";
     ctx.beginPath();
-    ctx.moveTo(x + decoration.w * 0.5, y);
-    ctx.lineTo(x + decoration.w, y + decoration.h * 0.6);
-    ctx.lineTo(x + decoration.w * 0.5, y + decoration.h);
-    ctx.lineTo(x, y + decoration.h * 0.6);
-    ctx.closePath();
+    ctx.ellipse(
+      x + decoration.w * 0.5,
+      y + decoration.h * 0.62,
+      decoration.w * 0.46,
+      decoration.h * 0.22,
+      0,
+      0,
+      Math.PI * 2,
+    );
+    ctx.fill();
+
+    ctx.fillStyle = "#fff6ba";
+    ctx.beginPath();
+    ctx.arc(x + decoration.w * 0.3, y + decoration.h * 0.64, decoration.w * 0.05, 0, Math.PI * 2);
+    ctx.arc(x + decoration.w * 0.7, y + decoration.h * 0.64, decoration.w * 0.05, 0, Math.PI * 2);
     ctx.fill();
     return;
   }
-  ctx.fillStyle = "#8fa5b2";
-  ctx.fillRect(x + decoration.w * 0.1, y + decoration.h * 0.15, decoration.w * 0.8, decoration.h * 0.85);
+
+  ctx.fillStyle = "#d4d9f8";
+  ctx.fillRect(x + decoration.w * 0.44, y + decoration.h * 0.14, decoration.w * 0.12, decoration.h * 0.72);
+  ctx.fillStyle = "#a4b8ff";
+  ctx.beginPath();
+  ctx.moveTo(x + decoration.w * 0.28, y + decoration.h * 0.5);
+  ctx.lineTo(x + decoration.w * 0.5, y + decoration.h * 0.36);
+  ctx.lineTo(x + decoration.w * 0.72, y + decoration.h * 0.5);
+  ctx.lineTo(x + decoration.w * 0.5, y + decoration.h * 0.64);
+  ctx.closePath();
+  ctx.fill();
+}
+
+function drawStarfield(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  cameraX: number,
+  elapsedSeconds: number,
+  theme: StageVisualTheme,
+): void {
+  for (let index = 0; index < 110; index += 1) {
+    const starX = wrap(index * 173.47 - cameraX * (0.03 + (index % 5) * 0.01), width + 120) - 60;
+    const baseY = 24 + (index * 47.39) % (height - 180);
+    const waveY = Math.sin(elapsedSeconds * 0.4 + index * 1.37) * 5;
+    const radius = 0.8 + (index % 3) * 0.45;
+    const alpha = 0.35 + ((index * 37) % 60) / 100;
+    ctx.fillStyle = toRgba(theme.star, alpha);
+    ctx.beginPath();
+    ctx.arc(starX, baseY + waveY, radius, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function drawNebulaBands(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  cameraX: number,
+  elapsedSeconds: number,
+  theme: StageVisualTheme,
+): void {
+  const bands = [
+    { color: toRgba(theme.nebula[0], 0.23), y: height * 0.24, speed: 0.07, amp: 18, wave: 0.012, seg: 280 },
+    { color: toRgba(theme.nebula[1], 0.2), y: height * 0.35, speed: 0.11, amp: 24, wave: 0.011, seg: 320 },
+    { color: toRgba(theme.nebula[2], 0.17), y: height * 0.5, speed: 0.17, amp: 20, wave: 0.014, seg: 260 },
+  ];
+
+  for (const band of bands) {
+    const shift = -((cameraX * band.speed) % band.seg);
+    ctx.fillStyle = band.color;
+    for (let x = shift - band.seg; x < width + band.seg; x += band.seg) {
+      const waveY = Math.sin((x + elapsedSeconds * 90) * band.wave) * band.amp;
+      ctx.beginPath();
+      ctx.moveTo(x, band.y + waveY);
+      ctx.quadraticCurveTo(
+        x + band.seg * 0.3,
+        band.y - band.amp + waveY,
+        x + band.seg * 0.55,
+        band.y + waveY,
+      );
+      ctx.quadraticCurveTo(
+        x + band.seg * 0.82,
+        band.y + band.amp + waveY,
+        x + band.seg,
+        band.y + waveY,
+      );
+      ctx.lineTo(x + band.seg, height);
+      ctx.lineTo(x, height);
+      ctx.closePath();
+      ctx.fill();
+    }
+  }
+}
+
+function drawCometStorm(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  cameraX: number,
+  elapsedSeconds: number,
+  theme: StageVisualTheme,
+): void {
+  drawNebulaBands(ctx, width, height, cameraX, elapsedSeconds, theme);
+
+  ctx.lineWidth = 2;
+  for (let index = 0; index < 18; index += 1) {
+    const x = wrap(index * 230 - cameraX * 0.35 - elapsedSeconds * 260, width + 320) - 160;
+    const y = 44 + (index * 59) % (height * 0.55);
+    ctx.strokeStyle = toRgba(theme.nebula[index % 3], 0.5 - (index % 4) * 0.07);
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + 130, y + 34);
+    ctx.stroke();
+
+    ctx.fillStyle = toRgba(theme.star, 0.5);
+    ctx.beginPath();
+    ctx.arc(x, y, 1.8, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function drawOrbitalGrid(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  cameraX: number,
+  elapsedSeconds: number,
+  theme: StageVisualTheme,
+): void {
+  ctx.strokeStyle = toRgba(theme.nebula[0], 0.16);
+  ctx.lineWidth = 1;
+  const xShift = -((cameraX * 0.18) % 80);
+  for (let x = xShift; x < width; x += 80) {
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, height);
+    ctx.stroke();
+  }
+
+  const yShift = -((elapsedSeconds * 18) % 60);
+  for (let y = yShift; y < height; y += 60) {
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(width, y);
+    ctx.stroke();
+  }
+
+  ctx.strokeStyle = toRgba(theme.nebula[2], 0.22);
+  ctx.lineWidth = 2;
+  for (let i = 0; i < 3; i += 1) {
+    const cx = width * (0.24 + i * 0.28);
+    const cy = height * (0.22 + ((i + 1) % 2) * 0.18);
+    const r = 70 + i * 36 + Math.sin(elapsedSeconds + i) * 4;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+}
+
+function drawLunarMist(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  cameraX: number,
+  elapsedSeconds: number,
+  theme: StageVisualTheme,
+): void {
+  drawNebulaBands(ctx, width, height, cameraX * 0.4, elapsedSeconds * 0.7, theme);
+
+  for (let index = 0; index < 8; index += 1) {
+    const radius = 120 + (index % 3) * 40;
+    const x = wrap(index * 280 - cameraX * (0.05 + index * 0.005), width + 260) - 130;
+    const y = 80 + (index * 54) % 240 + Math.sin(elapsedSeconds * 0.7 + index) * 16;
+    ctx.fillStyle = toRgba(theme.nebula[index % 3], 0.14);
+    ctx.beginPath();
+    ctx.arc(x, y, radius, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+function drawRedAlertBands(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  cameraX: number,
+  elapsedSeconds: number,
+  theme: StageVisualTheme,
+): void {
+  drawNebulaBands(ctx, width, height, cameraX, elapsedSeconds, theme);
+
+  const offset = (elapsedSeconds * 180 + cameraX * 0.2) % 120;
+  for (let x = -height; x < width + height; x += 120) {
+    ctx.fillStyle = toRgba(theme.nebula[(Math.floor(x / 120) + 60) % 3], 0.12);
+    ctx.beginPath();
+    ctx.moveTo(x + offset, 0);
+    ctx.lineTo(x + 40 + offset, 0);
+    ctx.lineTo(x - height + 40 + offset, height);
+    ctx.lineTo(x - height + offset, height);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  ctx.strokeStyle = toRgba(theme.nebula[0], 0.22);
+  ctx.lineWidth = 2;
+  for (let y = 70; y < height - 80; y += 90) {
+    const wave = Math.sin(elapsedSeconds * 2.2 + y * 0.04) * 18;
+    ctx.beginPath();
+    ctx.moveTo(0, y + wave);
+    ctx.lineTo(width, y - wave);
+    ctx.stroke();
+  }
+}
+
+function wrap(value: number, length: number): number {
+  return ((value % length) + length) % length;
+}
+
+function toRgba(color: string, alpha: number): string {
+  const match = color.trim().match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
+  if (!match) {
+    return color;
+  }
+  const hex = match[1];
+  const expanded = hex.length === 3
+    ? `${hex[0]}${hex[0]}${hex[1]}${hex[1]}${hex[2]}${hex[2]}`
+    : hex;
+  const r = Number.parseInt(expanded.slice(0, 2), 16);
+  const g = Number.parseInt(expanded.slice(2, 4), 16);
+  const b = Number.parseInt(expanded.slice(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }

@@ -1,24 +1,54 @@
 <svg width="96" height="96" viewBox="0 0 96 96" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="airCape" x1="24" y1="40" x2="76" y2="88" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#F46B6B"/>
-      <stop offset="1" stop-color="#A92E53"/>
+    <radialGradient id="airBurst" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(36 80) rotate(14) scale(34 18)">
+      <stop offset="0" stop-color="#B7F7FF" stop-opacity="0.45"/>
+      <stop offset="1" stop-color="#B7F7FF" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="airSuit" x1="21" y1="28" x2="77" y2="78" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#85C2FF"/>
+      <stop offset="0.52" stop-color="#4E79FF"/>
+      <stop offset="1" stop-color="#2D3F9B"/>
     </linearGradient>
-    <linearGradient id="airArmor" x1="24" y1="20" x2="70" y2="80" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#57A6FF"/>
-      <stop offset="1" stop-color="#1E529E"/>
+    <linearGradient id="airCape" x1="18" y1="48" x2="62" y2="88" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FF8BC0"/>
+      <stop offset="1" stop-color="#C8388D"/>
+    </linearGradient>
+    <linearGradient id="airVisor" x1="30" y1="20" x2="59" y2="42" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#F0FDFF"/>
+      <stop offset="1" stop-color="#95D9FF"/>
+    </linearGradient>
+    <linearGradient id="thruster" x1="70" y1="64" x2="88" y2="86" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFF4A3"/>
+      <stop offset="1" stop-color="#FF7F56"/>
     </linearGradient>
   </defs>
-  <ellipse cx="50" cy="86" rx="20" ry="6" fill="#163557" fill-opacity="0.18"/>
-  <path d="M24 62C30 52 40 48 54 52C66 56 72 66 74 78L48 82L24 62Z" fill="url(#airCape)"/>
-  <path d="M24 42C24 33 30.2 25 38.8 22.7L53.1 18.9C62.4 16.4 71.7 22.4 73.4 31.8L79 62L32 75L24 42Z" fill="url(#airArmor)"/>
-  <rect x="38" y="33" width="24" height="20" rx="5" transform="rotate(-15 38 33)" fill="#DEEEFF"/>
-  <rect x="33" y="55" width="10" height="24" rx="4" transform="rotate(18 33 55)" fill="#173D80"/>
-  <rect x="49" y="51" width="10" height="24" rx="4" transform="rotate(-6 49 51)" fill="#173D80"/>
-  <rect x="21" y="45" width="8" height="20" rx="4" transform="rotate(18 21 45)" fill="#245DAC"/>
-  <rect x="66" y="39" width="8" height="20" rx="4" transform="rotate(-30 66 39)" fill="#245DAC"/>
-  <path d="M37 28C37 22.5 41.5 18 47 18H50C55.5 18 60 22.5 60 28V30H37V28Z" fill="#F7D3B2"/>
-  <ellipse cx="45.5" cy="26.5" rx="1.5" ry="1.7" fill="#28354A"/>
-  <ellipse cx="53" cy="24.8" rx="1.5" ry="1.7" fill="#28354A"/>
-  <path d="M45.5 31.5C47.5 33 51.5 32.2 52.8 30.4" stroke="#A96E53" stroke-width="2" stroke-linecap="round"/>
+
+  <ellipse cx="35" cy="83" rx="24" ry="7" fill="#0A1632" fill-opacity="0.22"/>
+  <ellipse cx="35" cy="72" rx="22" ry="14" fill="url(#airBurst)"/>
+
+  <g transform="rotate(-16 48 50)">
+    <path d="M22 62C27 51 36 46 47 47C59 48 67 55 71 66L45 83L22 62Z" fill="url(#airCape)"/>
+    <path d="M20 49C20 36 30.5 25.5 43.5 25.5H49.5C62.5 25.5 73 36 73 49V76C73 79.3 70.3 82 67 82H26C22.7 82 20 79.3 20 76V49Z" fill="url(#airSuit)"/>
+    <path d="M20 49C20 36 30.5 25.5 43.5 25.5H49.5C62.5 25.5 73 36 73 49V76C73 79.3 70.3 82 67 82H26C22.7 82 20 79.3 20 76V49Z" stroke="#15245F" stroke-width="2"/>
+
+    <rect x="27" y="57" width="13" height="22" rx="5" fill="#243983"/>
+    <rect x="48" y="57" width="13" height="22" rx="5" fill="#243983"/>
+    <rect x="15" y="47" width="9" height="22" rx="4.5" fill="#3657B6"/>
+    <rect x="69" y="47" width="9" height="22" rx="4.5" fill="#3657B6"/>
+
+    <path d="M29 23C29 16.9 33.9 12 40 12H48C54.1 12 59 16.9 59 23V29H29V23Z" fill="#FFD8BA"/>
+    <rect x="26" y="22" width="35" height="23" rx="11.5" fill="url(#airVisor)" stroke="#4F86C7" stroke-width="2"/>
+    <ellipse cx="37.5" cy="31" rx="3.1" ry="3.8" fill="#203A6A"/>
+    <ellipse cx="49.5" cy="31" rx="3.1" ry="3.8" fill="#203A6A"/>
+    <ellipse cx="36.8" cy="30.2" rx="0.95" ry="1.2" fill="#F6FCFF"/>
+    <ellipse cx="48.8" cy="30.2" rx="0.95" ry="1.2" fill="#F6FCFF"/>
+    <path d="M38 37C40.6 39.1 46.4 39.1 49 37" stroke="#284B84" stroke-width="2.3" stroke-linecap="round"/>
+
+    <path d="M62 66L79 75L64 81" fill="url(#thruster)"/>
+    <path d="M69 62L84 68L71 73" fill="#FFF9C3" fill-opacity="0.85"/>
+
+    <path d="M44 46L45.5 50L49.8 50.4L46.5 53.1L47.5 57.6L44 55.4L40.5 57.6L41.5 53.1L38.2 50.4L42.5 50Z" fill="#FFE17A"/>
+  </g>
+
+  <path d="M72 22L76 30L84 31L78 37L79.5 45L72 41L64.5 45L66 37L60 31L68 30L72 22Z" fill="#9FE7FF" fill-opacity="0.78"/>
 </svg>

@@ -1,0 +1,21 @@
+<svg width="160" height="110" viewBox="0 0 160 110" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="ufoDome" x1="52" y1="18" x2="108" y2="58" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#D3FAFF"/>
+      <stop offset="1" stop-color="#84D8FF"/>
+    </linearGradient>
+    <linearGradient id="ufoBody" x1="20" y1="42" x2="140" y2="82" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#F4C7FF"/>
+      <stop offset="0.5" stop-color="#9FA9FF"/>
+      <stop offset="1" stop-color="#7AD8FF"/>
+    </linearGradient>
+  </defs>
+  <ellipse cx="80" cy="88" rx="42" ry="10" fill="#1A1F52" fill-opacity="0.26"/>
+  <ellipse cx="80" cy="47" rx="32" ry="20" fill="url(#ufoDome)"/>
+  <ellipse cx="80" cy="64" rx="62" ry="22" fill="url(#ufoBody)"/>
+  <ellipse cx="80" cy="64" rx="52" ry="16" fill="#8BA7FF" fill-opacity="0.54"/>
+  <circle cx="50" cy="67" r="5" fill="#FFF7BC"/>
+  <circle cx="80" cy="72" r="5" fill="#FFF7BC"/>
+  <circle cx="110" cy="67" r="5" fill="#FFF7BC"/>
+  <path d="M42 85L56 67H104L118 85H42Z" fill="#A6A7FF" fill-opacity="0.4"/>
+</svg>

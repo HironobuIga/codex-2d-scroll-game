@@ -24,7 +24,7 @@ import { Coin } from "./entities/Coin";
 import { Enemy } from "./entities/Enemy";
 import { Player } from "./entities/Player";
 import { InputState } from "./input";
-import { createLevel1, type LevelData } from "./level";
+import { createStageLevels, type LevelData } from "./level";
 import {
   circleIntersectsRect,
   clamp,
@@ -36,6 +36,7 @@ import {
   drawBackground,
   drawDecorations,
   drawCoins,
+  drawEnemyShots,
   drawEnemies,
   drawGoal,
   drawHud,
@@ -45,20 +46,37 @@ import {
 } from "./render";
 import type { GameMode } from "./types";
 
+interface EnemyShot {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  r: number;
+  ttl: number;
+}
+
+type GameOverReason = "fall" | "defeat" | null;
+
 export class Game {
   mode: GameMode = "title";
-  private readonly level: LevelData;
+  private readonly levels: LevelData[];
+  private levelIndex = 0;
+  private level: LevelData;
   private readonly camera: Camera;
   private readonly player: Player;
   private assets: GameAssets | null;
   private enemies: Enemy[] = [];
+  private enemyShots: EnemyShot[] = [];
   private coins: Coin[] = [];
   private score = 0;
+  private scoreAtStageStart = 0;
   private collectedCoins = 0;
   private elapsedSeconds = 0;
+  private gameOverReason: GameOverReason = null;
 
   constructor(assets?: GameAssets) {
-    this.level = createLevel1();
+    this.levels = createStageLevels();
+    this.level = this.levels[this.levelIndex];
     this.camera = new Camera(VIEWPORT_WIDTH, VIEWPORT_HEIGHT);
     this.player = new Player(this.level.spawn);
     this.assets = assets ?? null;
@@ -71,24 +89,65 @@ export class Game {
   }
 
   startRun(): void {
-    this.resetRound();
+    this.score = 0;
+    this.loadStage(0);
     this.mode = "playing";
+  }
+
+  activatePrimaryAction(): void {
+    if (this.mode === "title" || this.mode === "gameover") {
+      this.startRun();
+      return;
+    }
+    if (this.mode === "clear") {
+      if (this.isFinalStage()) {
+        this.startRun();
+      } else {
+        this.advanceStage();
+      }
+    }
+  }
+
+  activateRetryStageAction(): void {
+    if (this.mode !== "gameover" || !this.canRetryCurrentStage()) {
+      return;
+    }
+    this.retryCurrentStage();
   }
 
   shouldShowStartButton(): boolean {
     return this.mode === "title" || this.mode === "gameover" || this.mode === "clear";
   }
 
+  shouldShowRetryStageButton(): boolean {
+    return this.mode === "gameover" && this.canRetryCurrentStage();
+  }
+
   startButtonLabel(): string {
-    return this.mode === "title" ? "Start" : "Restart";
+    if (this.mode === "title") {
+      return "Start Mission";
+    }
+    if (this.mode === "clear") {
+      return this.isFinalStage() ? "Play Again" : "Next Stage";
+    }
+    return "Restart Stage 1";
+  }
+
+  retryStageButtonLabel(): string {
+    return `Retry Stage ${this.level.stageNumber}`;
   }
 
   step(dt: number, input: InputState): void {
     this.elapsedSeconds += dt;
 
     if (this.mode === "title" || this.mode === "gameover" || this.mode === "clear") {
+      if (this.mode === "gameover" && this.canRetryCurrentStage() && input.consumePress("KeyR")) {
+        this.retryCurrentStage();
+        this.updateCamera();
+        return;
+      }
       if (input.consumePress("Space") || input.consumePress("Enter")) {
-        this.startRun();
+        this.activatePrimaryAction();
       }
       this.updateCamera();
       return;
@@ -119,24 +178,38 @@ export class Game {
       ctx.canvas.height,
       this.elapsedSeconds,
       renderAssets,
+      this.level.backgroundStyle,
+      this.level.theme,
     );
     drawDecorations(ctx, this.camera, this.level.decorations, "back", renderAssets);
-    drawSolids(ctx, this.camera, this.level.solids, renderAssets);
+    drawSolids(ctx, this.camera, this.level.solids, renderAssets, this.level.theme);
     drawCoins(ctx, this.camera, this.coins, renderAssets);
     drawEnemies(ctx, this.camera, this.enemies, renderAssets);
+    drawEnemyShots(ctx, this.camera, this.enemyShots);
     if (this.player.invincibleTimer <= 0 || Math.floor(this.elapsedSeconds * 20) % 2 === 0) {
       drawPlayer(ctx, this.camera, this.player, renderAssets);
     }
     drawGoal(ctx, this.camera, this.level.goal, renderAssets);
     drawDecorations(ctx, this.camera, this.level.decorations, "front", renderAssets);
-    drawHud(ctx, this.score, this.player.hp, this.collectedCoins, this.coins.length);
+    drawHud(
+      ctx,
+      this.score,
+      this.player.hp,
+      this.collectedCoins,
+      this.coins.length,
+      this.level.stageNumber,
+      this.levels.length,
+      this.level.title,
+      this.level.tagline,
+      this.level.theme,
+    );
 
     if (this.mode === "title") {
       drawOverlay(
         ctx,
-        "Side Scroll Trial",
+        "COSMIC ALIEN ADVENTURE",
         "ArrowLeft/ArrowRight move, Space jump",
-        "Enter pauses, F toggles fullscreen",
+        "Stomp or avoid cute aliens. Enter pause / F fullscreen",
       );
       return;
     }
@@ -147,12 +220,30 @@ export class Game {
     }
 
     if (this.mode === "gameover") {
-      drawOverlay(ctx, "GAME OVER", "Press Space or Restart to try again");
+      if (this.canRetryCurrentStage()) {
+        drawOverlay(
+          ctx,
+          "GAME OVER",
+          `You fell in Stage ${this.level.stageNumber}. Press R or Retry Stage`,
+          "Press Space or Restart Stage 1 to start over",
+        );
+      } else {
+        drawOverlay(ctx, "GAME OVER", "Press Space or Restart Stage 1 to try again");
+      }
       return;
     }
 
     if (this.mode === "clear") {
-      drawOverlay(ctx, "CLEAR!", "Goal reached. Press Space or Restart");
+      if (this.isFinalStage()) {
+        drawOverlay(ctx, "ALL STAGES CLEAR!", "You crossed every galaxy lane. Press Space to restart");
+      } else {
+        drawOverlay(
+          ctx,
+          `STAGE ${this.level.stageNumber} CLEAR`,
+          `Next: Stage ${this.level.stageNumber + 1} (${this.levels[this.levelIndex + 1].title})`,
+          "Press Space/Enter or click Next Stage",
+        );
+      }
     }
   }
 
@@ -160,12 +251,14 @@ export class Game {
     const payload = {
       coord_system: "origin=top-left,+x=right,+y=down,unit=px",
       mode: this.mode,
+      gameOverReason: this.gameOverReason,
       camera: { x: round(this.camera.x), y: round(this.camera.y) },
       player: {
         x: round(this.player.x),
         y: round(this.player.y),
         vx: round(this.player.vx),
         vy: round(this.player.vy),
+        facing: this.player.facing,
         w: this.player.w,
         h: this.player.h,
         hp: this.player.hp,
@@ -177,6 +270,18 @@ export class Game {
         w: enemy.w,
         h: enemy.h,
         alive: enemy.alive,
+        tier: enemy.tier,
+        hp: enemy.hp,
+        maxHp: enemy.maxHp,
+        damage: enemy.contactDamage,
+        dashing: enemy.isDashing(),
+      })),
+      enemyShots: this.enemyShots.map((shot) => ({
+        x: round(shot.x),
+        y: round(shot.y),
+        vx: round(shot.vx),
+        vy: round(shot.vy),
+        r: shot.r,
       })),
       coins: {
         remaining: this.coins.filter((coin) => !coin.collected).length,
@@ -185,6 +290,12 @@ export class Game {
       score: this.score,
       level: {
         id: this.level.id,
+        stage: this.level.stageNumber,
+        title: this.level.title,
+        tagline: this.level.tagline,
+        totalStages: this.levels.length,
+        backgroundStyle: this.level.backgroundStyle,
+        physics: this.level.physics,
         width: this.level.width,
         height: this.level.height,
       },
@@ -193,11 +304,16 @@ export class Game {
   }
 
   private stepPlaying(dt: number, input: InputState): void {
+    const stagePhysics = this.level.physics;
     this.player.invincibleTimer = Math.max(0, this.player.invincibleTimer - dt);
 
     const moveIntent = (input.isDown("ArrowRight") ? 1 : 0) - (input.isDown("ArrowLeft") ? 1 : 0);
+    if (moveIntent !== 0) {
+      this.player.facing = moveIntent > 0 ? 1 : -1;
+    }
     const accel = this.player.grounded ? PLAYER_GROUND_ACCEL : PLAYER_AIR_ACCEL;
     this.player.vx += moveIntent * accel * dt;
+    this.player.vx += stagePhysics.windX * dt;
     if (moveIntent === 0) {
       this.player.vx *= this.player.grounded ? PLAYER_GROUND_FRICTION : PLAYER_AIR_FRICTION;
       if (Math.abs(this.player.vx) < 1) {
@@ -212,20 +328,30 @@ export class Game {
     }
 
     const previousBottom = this.player.bottom();
-    this.player.vy = Math.min(this.player.vy + WORLD_GRAVITY * dt, PLAYER_MAX_FALL_SPEED);
+    this.player.vy = Math.min(
+      this.player.vy + WORLD_GRAVITY * stagePhysics.gravityScale * dt,
+      PLAYER_MAX_FALL_SPEED * Math.max(1, stagePhysics.gravityScale),
+    );
     const movedPlayer = moveBody(this.player.rect(), this.player.vx, this.player.vy, dt, this.level.solids);
     this.player.applyRect(movedPlayer.rect);
     this.player.vx = movedPlayer.vx;
     this.player.vy = movedPlayer.vy;
     this.player.grounded = movedPlayer.hitBottom;
+    if (Math.abs(this.player.vx) > 12) {
+      this.player.facing = this.player.vx > 0 ? 1 : -1;
+    }
 
     for (const enemy of this.enemies) {
       if (!enemy.alive) {
         continue;
       }
 
-      enemy.vx = enemy.direction * ENEMY_SPEED;
-      enemy.vy = Math.min(enemy.vy + WORLD_GRAVITY * dt, ENEMY_MAX_FALL_SPEED);
+      const behaviorSpeedScale = enemy.updateBehavior(dt, this.player.centerX());
+      enemy.vx = enemy.direction * ENEMY_SPEED * stagePhysics.enemySpeedScale * behaviorSpeedScale;
+      enemy.vy = Math.min(
+        enemy.vy + WORLD_GRAVITY * stagePhysics.gravityScale * dt,
+        ENEMY_MAX_FALL_SPEED * Math.max(1, stagePhysics.gravityScale),
+      );
       const movedEnemy = moveBody(enemy.rect(), enemy.vx, enemy.vy, dt, this.level.solids);
       enemy.applyRect(movedEnemy.rect);
       enemy.vx = movedEnemy.vx;
@@ -243,7 +369,13 @@ export class Game {
       } else if (enemy.grounded && !this.enemyHasGroundAhead(enemy)) {
         enemy.direction *= -1;
       }
+
+      if (enemy.tier === "ace") {
+        this.maybeFireEnemyShot(enemy);
+      }
     }
+
+    this.updateEnemyShots(dt);
 
     const playerRect = this.player.rect();
     for (const coin of this.coins) {
@@ -267,9 +399,13 @@ export class Game {
       }
       const landedFromAbove = previousBottom <= enemy.y + 7 && this.player.vy >= 0;
       if (landedFromAbove) {
-        enemy.alive = false;
-        this.score += SCORE_PER_STOMP;
-        this.player.vy = -PLAYER_STOMP_BOUNCE;
+        const defeated = enemy.applyStompDamage();
+        if (defeated) {
+          this.score += SCORE_PER_STOMP + (enemy.maxHp - 1) * 25;
+        } else {
+          this.score += Math.floor(SCORE_PER_STOMP * 0.5);
+        }
+        this.player.vy = -PLAYER_STOMP_BOUNCE * (defeated ? 1 : 0.82);
         this.player.grounded = false;
         continue;
       }
@@ -280,7 +416,7 @@ export class Game {
     }
 
     if (this.player.y > this.level.deathY) {
-      this.mode = "gameover";
+      this.setGameOver("fall");
       return;
     }
 
@@ -298,14 +434,16 @@ export class Game {
       return;
     }
 
-    this.player.hp = Math.max(0, this.player.hp - 1);
+    this.player.hp = Math.max(0, this.player.hp - enemy.contactDamage);
     this.player.invincibleTimer = PLAYER_INVINCIBLE_SECONDS;
     const pushDirection = this.player.centerX() < enemy.centerX() ? -1 : 1;
-    this.player.vx = pushDirection * PLAYER_KNOCKBACK_X;
-    this.player.vy = -PLAYER_KNOCKBACK_Y;
+    const knockbackScale = 1 + (enemy.contactDamage - 1) * 0.45;
+    this.player.vx = pushDirection * PLAYER_KNOCKBACK_X * knockbackScale;
+    this.player.vy = -PLAYER_KNOCKBACK_Y * knockbackScale;
+    this.player.facing = this.player.vx > 0 ? 1 : -1;
     this.player.grounded = false;
     if (this.player.hp === 0) {
-      this.mode = "gameover";
+      this.setGameOver("defeat");
     }
   }
 
@@ -315,14 +453,120 @@ export class Game {
     return hasGroundAt(probeX, probeY, this.level.solids);
   }
 
+  private maybeFireEnemyShot(enemy: Enemy): void {
+    const muzzleX = enemy.centerX() + enemy.direction * enemy.w * 0.28;
+    const muzzleY = enemy.y + enemy.h * 0.46;
+    const toPlayerX = this.player.centerX() - muzzleX;
+    const toPlayerY = this.player.centerY() - muzzleY;
+    const distance = Math.hypot(toPlayerX, toPlayerY);
+    if (distance < 180 || distance > 480) {
+      return;
+    }
+    if (Math.abs(toPlayerY) > 170) {
+      return;
+    }
+
+    const hasRecentShot = this.enemyShots.some(
+      (shot) => Math.abs(shot.x - muzzleX) < 72 && Math.abs(shot.y - muzzleY) < 52 && shot.ttl > 2.15,
+    );
+    if (hasRecentShot) {
+      return;
+    }
+
+    const speed = 340;
+    const dx = toPlayerX / distance;
+    const dy = toPlayerY / distance;
+    this.enemyShots.push({
+      x: muzzleX,
+      y: muzzleY,
+      vx: dx * speed,
+      vy: dy * speed * 0.74,
+      r: 8,
+      ttl: 2.7,
+    });
+  }
+
+  private updateEnemyShots(dt: number): void {
+    const nextShots: EnemyShot[] = [];
+    for (const shot of this.enemyShots) {
+      const nx = shot.x + shot.vx * dt;
+      const ny = shot.y + shot.vy * dt;
+      const ttl = shot.ttl - dt;
+      if (ttl <= 0) {
+        continue;
+      }
+      if (nx < -80 || nx > this.level.width + 80 || ny < -40 || ny > this.level.deathY + 40) {
+        continue;
+      }
+      if (this.level.solids.some((solid) => circleIntersectsRect(nx, ny, shot.r, solid))) {
+        continue;
+      }
+      if (circleIntersectsRect(nx, ny, shot.r, this.player.rect())) {
+        const ace = this.enemies.find((enemy) => enemy.tier === "ace" && enemy.alive) ?? null;
+        if (ace) {
+          this.damagePlayer(ace);
+        } else if (this.player.invincibleTimer <= 0) {
+          this.player.hp = Math.max(0, this.player.hp - 1);
+          this.player.invincibleTimer = PLAYER_INVINCIBLE_SECONDS;
+          if (this.player.hp === 0) {
+            this.setGameOver("defeat");
+          }
+        }
+        continue;
+      }
+      nextShots.push({ ...shot, x: nx, y: ny, ttl });
+    }
+    this.enemyShots = nextShots;
+  }
+
   private resetRound(): void {
     this.player.reset(this.level.spawn);
-    this.enemies = this.level.enemies.map((spawn) => new Enemy(spawn));
+    this.enemies = this.level.enemies.map(
+      (spawn, index) => new Enemy(spawn, this.level.stageNumber, index),
+    );
+    this.enemyShots = [];
     this.coins = this.level.coins.map((spawn) => new Coin(spawn));
-    this.score = 0;
     this.collectedCoins = 0;
     this.elapsedSeconds = 0;
     this.updateCamera();
+  }
+
+  private advanceStage(): void {
+    if (this.levelIndex >= this.levels.length - 1) {
+      this.startRun();
+      return;
+    }
+    this.loadStage(this.levelIndex + 1);
+    this.mode = "playing";
+  }
+
+  private loadStage(index: number): void {
+    const clampedIndex = clamp(index, 0, this.levels.length - 1);
+    this.levelIndex = clampedIndex;
+    this.level = this.levels[this.levelIndex];
+    this.scoreAtStageStart = this.score;
+    this.gameOverReason = null;
+    this.resetRound();
+  }
+
+  private isFinalStage(): boolean {
+    return this.levelIndex >= this.levels.length - 1;
+  }
+
+  private canRetryCurrentStage(): boolean {
+    return this.gameOverReason === "fall";
+  }
+
+  private retryCurrentStage(): void {
+    this.score = this.scoreAtStageStart;
+    this.gameOverReason = null;
+    this.resetRound();
+    this.mode = "playing";
+  }
+
+  private setGameOver(reason: Exclude<GameOverReason, null>): void {
+    this.gameOverReason = reason;
+    this.mode = "gameover";
   }
 }
 
