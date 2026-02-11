@@ -1,8 +1,13 @@
 import {
   ENEMY_MAX_FALL_SPEED,
   ENEMY_SPEED,
+  PLAYER_AIR_JUMPS,
   PLAYER_AIR_ACCEL,
   PLAYER_AIR_FRICTION,
+  PLAYER_AIR_JUMP_SPEED,
+  PLAYER_DASH_COOLDOWN,
+  PLAYER_DASH_DURATION,
+  PLAYER_DASH_SPEED,
   PLAYER_GROUND_ACCEL,
   PLAYER_GROUND_FRICTION,
   PLAYER_INVINCIBLE_SECONDS,
@@ -11,6 +16,9 @@ import {
   PLAYER_KNOCKBACK_Y,
   PLAYER_MAX_FALL_SPEED,
   PLAYER_MAX_SPEED_X,
+  PLAYER_PULSE_COOLDOWN,
+  PLAYER_PULSE_DURATION,
+  PLAYER_PULSE_RADIUS,
   PLAYER_STOMP_BOUNCE,
   SCORE_PER_COIN,
   SCORE_PER_STOMP,
@@ -208,8 +216,8 @@ export class Game {
       drawOverlay(
         ctx,
         "COSMIC ALIEN ADVENTURE",
-        "ArrowLeft/ArrowRight move, Space jump",
-        "Stomp or avoid cute aliens. Enter pause / F fullscreen",
+        "Arrow move, Space jump x2, A dash, B pulse",
+        "Stomp or burst through cute aliens. Enter pause / F fullscreen",
       );
       return;
     }
@@ -263,6 +271,11 @@ export class Game {
         h: this.player.h,
         hp: this.player.hp,
         grounded: this.player.grounded,
+        airJumpsRemaining: this.player.airJumpsRemaining,
+        dashTimer: round(this.player.dashTimer),
+        dashCooldown: round(this.player.dashCooldownTimer),
+        pulseTimer: round(this.player.pulseTimer),
+        pulseCooldown: round(this.player.pulseCooldownTimer),
       },
       enemies: this.enemies.map((enemy) => ({
         x: round(enemy.x),
@@ -306,25 +319,54 @@ export class Game {
   private stepPlaying(dt: number, input: InputState): void {
     const stagePhysics = this.level.physics;
     this.player.invincibleTimer = Math.max(0, this.player.invincibleTimer - dt);
+    this.player.dashTimer = Math.max(0, this.player.dashTimer - dt);
+    this.player.dashCooldownTimer = Math.max(0, this.player.dashCooldownTimer - dt);
+    this.player.pulseTimer = Math.max(0, this.player.pulseTimer - dt);
+    this.player.pulseCooldownTimer = Math.max(0, this.player.pulseCooldownTimer - dt);
 
     const moveIntent = (input.isDown("ArrowRight") ? 1 : 0) - (input.isDown("ArrowLeft") ? 1 : 0);
     if (moveIntent !== 0) {
       this.player.facing = moveIntent > 0 ? 1 : -1;
     }
+    if (input.consumePress("KeyA") && this.player.dashCooldownTimer <= 0) {
+      this.activateDash(moveIntent);
+    }
+
     const accel = this.player.grounded ? PLAYER_GROUND_ACCEL : PLAYER_AIR_ACCEL;
-    this.player.vx += moveIntent * accel * dt;
-    this.player.vx += stagePhysics.windX * dt;
-    if (moveIntent === 0) {
-      this.player.vx *= this.player.grounded ? PLAYER_GROUND_FRICTION : PLAYER_AIR_FRICTION;
-      if (Math.abs(this.player.vx) < 1) {
-        this.player.vx = 0;
+    if (this.player.dashTimer > 0) {
+      this.player.vx += stagePhysics.windX * dt * 0.35;
+      const minDashSpeed = PLAYER_DASH_SPEED * 0.82;
+      if (Math.abs(this.player.vx) < minDashSpeed) {
+        this.player.vx = this.player.facing * minDashSpeed;
+      }
+      this.player.vx = clamp(this.player.vx, -PLAYER_DASH_SPEED, PLAYER_DASH_SPEED);
+    } else {
+      this.player.vx += moveIntent * accel * dt;
+      this.player.vx += stagePhysics.windX * dt;
+      if (moveIntent === 0) {
+        this.player.vx *= this.player.grounded ? PLAYER_GROUND_FRICTION : PLAYER_AIR_FRICTION;
+        if (Math.abs(this.player.vx) < 1) {
+          this.player.vx = 0;
+        }
+      }
+      this.player.vx = clamp(this.player.vx, -PLAYER_MAX_SPEED_X, PLAYER_MAX_SPEED_X);
+    }
+
+    if (input.consumePress("Space")) {
+      if (this.player.grounded) {
+        this.player.vy = -PLAYER_JUMP_SPEED;
+        this.player.grounded = false;
+      } else if (this.player.airJumpsRemaining > 0) {
+        this.player.airJumpsRemaining -= 1;
+        this.player.vy = -PLAYER_AIR_JUMP_SPEED;
+        this.player.vx += this.player.facing * 80;
+        this.player.vx = clamp(this.player.vx, -PLAYER_MAX_SPEED_X, PLAYER_MAX_SPEED_X);
       }
     }
-    this.player.vx = clamp(this.player.vx, -PLAYER_MAX_SPEED_X, PLAYER_MAX_SPEED_X);
-
-    if (input.consumePress("Space") && this.player.grounded) {
-      this.player.vy = -PLAYER_JUMP_SPEED;
-      this.player.grounded = false;
+    const pulseTriggered = input.consumePress("KeyB") && this.player.pulseCooldownTimer <= 0;
+    if (pulseTriggered) {
+      this.player.pulseTimer = PLAYER_PULSE_DURATION;
+      this.player.pulseCooldownTimer = PLAYER_PULSE_COOLDOWN;
     }
 
     const previousBottom = this.player.bottom();
@@ -337,7 +379,10 @@ export class Game {
     this.player.vx = movedPlayer.vx;
     this.player.vy = movedPlayer.vy;
     this.player.grounded = movedPlayer.hitBottom;
-    if (Math.abs(this.player.vx) > 12) {
+    if (this.player.grounded) {
+      this.player.airJumpsRemaining = PLAYER_AIR_JUMPS;
+    }
+    if (Math.abs(this.player.vx) > 12 && this.player.dashTimer <= 0) {
       this.player.facing = this.player.vx > 0 ? 1 : -1;
     }
 
@@ -375,6 +420,10 @@ export class Game {
       }
     }
 
+    if (pulseTriggered) {
+      this.triggerPulseAttack();
+    }
+
     this.updateEnemyShots(dt);
 
     const playerRect = this.player.rect();
@@ -409,6 +458,17 @@ export class Game {
         this.player.grounded = false;
         continue;
       }
+      if (this.player.dashTimer > 0) {
+        const defeated = enemy.applyStompDamage();
+        if (defeated) {
+          this.score += SCORE_PER_STOMP + (enemy.maxHp - 1) * 25;
+        } else {
+          this.score += Math.floor(SCORE_PER_STOMP * 0.35);
+        }
+        this.player.vy = Math.min(this.player.vy, -160);
+        this.player.grounded = false;
+        continue;
+      }
       this.damagePlayer(enemy);
       if (this.mode === "gameover") {
         return;
@@ -429,7 +489,42 @@ export class Game {
     this.camera.follow(this.player.centerX(), this.player.centerY(), this.level.width, this.level.height);
   }
 
+  private activateDash(moveIntent: number): void {
+    const dashDirection: -1 | 1 = moveIntent !== 0 ? (moveIntent > 0 ? 1 : -1) : this.player.facing;
+    this.player.facing = dashDirection;
+    this.player.vx = dashDirection * PLAYER_DASH_SPEED;
+    this.player.vy *= 0.2;
+    this.player.dashTimer = PLAYER_DASH_DURATION;
+    this.player.dashCooldownTimer = PLAYER_DASH_COOLDOWN;
+  }
+
+  private triggerPulseAttack(): void {
+    const pulseX = this.player.centerX();
+    const pulseY = this.player.centerY();
+    for (const enemy of this.enemies) {
+      if (!enemy.alive) {
+        continue;
+      }
+      const distance = Math.hypot(enemy.centerX() - pulseX, enemy.y + enemy.h * 0.55 - pulseY);
+      if (distance > PLAYER_PULSE_RADIUS) {
+        continue;
+      }
+      const defeated = enemy.applyStompDamage();
+      if (defeated) {
+        this.score += SCORE_PER_STOMP + (enemy.maxHp - 1) * 25;
+      } else {
+        this.score += Math.floor(SCORE_PER_STOMP * 0.45);
+      }
+      enemy.direction = pulseX < enemy.centerX() ? 1 : -1;
+    }
+    this.enemyShots = this.enemyShots.filter((shot) => Math.hypot(shot.x - pulseX, shot.y - pulseY) > PLAYER_PULSE_RADIUS);
+    this.player.vy = Math.min(this.player.vy, -90);
+  }
+
   private damagePlayer(enemy: Enemy): void {
+    if (this.player.dashTimer > 0) {
+      return;
+    }
     if (this.player.invincibleTimer > 0) {
       return;
     }
@@ -502,6 +597,9 @@ export class Game {
         continue;
       }
       if (circleIntersectsRect(nx, ny, shot.r, this.player.rect())) {
+        if (this.player.dashTimer > 0) {
+          continue;
+        }
         const ace = this.enemies.find((enemy) => enemy.tier === "ace" && enemy.alive) ?? null;
         if (ace) {
           this.damagePlayer(ace);

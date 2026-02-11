@@ -173,7 +173,8 @@ export function drawEnemies(
     const isMoving = Math.abs(enemy.vx) > 28 || enemy.isDashing() || !enemy.grounded;
     const enemySprite = pickEnemySprite(enemy, assets, isMoving);
     if (enemySprite && isLoaded(enemySprite)) {
-      const enemyFacing: -1 | 1 = Math.abs(enemy.vx) > 4 ? (enemy.vx > 0 ? 1 : -1) : enemy.direction;
+      const movementFacing: -1 | 1 = Math.abs(enemy.vx) > 4 ? (enemy.vx > 0 ? 1 : -1) : enemy.direction;
+      const enemyFacing: -1 | 1 = movementFacing > 0 ? -1 : 1;
       const sizeScale = pickEnemySizeScale(enemy);
       drawSpriteBottomCenter(
         ctx,
@@ -283,12 +284,54 @@ export function drawPlayer(
 ): void {
   const sx = player.x - camera.x;
   const sy = player.y - camera.y;
+  const centerX = sx + player.w * 0.5;
+  const centerY = sy + player.h * 0.55;
+  const isDashPose = player.dashTimer > 0;
+  const isPulsePose = player.pulseTimer > 0;
   const isAirPose = !player.grounded && Math.abs(player.vy) > 40;
   const isMovingOnGround = player.grounded && Math.abs(player.vx) > 28;
-  const sprite = isAirPose ? assets?.heroAir : isMovingOnGround ? assets?.heroMove ?? assets?.heroIdle : assets?.heroIdle;
+  if (isPulsePose) {
+    const pulseRatio = Math.min(1, player.pulseTimer / 0.3);
+    ctx.strokeStyle = `rgba(125, 255, 244, ${0.2 + pulseRatio * 0.45})`;
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, 26 + (1 - pulseRatio) * 90, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.strokeStyle = `rgba(168, 220, 255, ${0.15 + pulseRatio * 0.32})`;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, 18 + (1 - pulseRatio) * 64, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  if (isDashPose) {
+    const trailDir = player.facing > 0 ? -1 : 1;
+    for (let index = 0; index < 3; index += 1) {
+      const t = index / 3;
+      ctx.fillStyle = `rgba(134, 224, 255, ${0.22 - t * 0.05})`;
+      ctx.beginPath();
+      ctx.ellipse(
+        centerX + trailDir * (16 + index * 18),
+        centerY + 4 + index * 2,
+        26 - index * 4,
+        14 - index * 2,
+        0,
+        0,
+        Math.PI * 2,
+      );
+      ctx.fill();
+    }
+  }
+
+  const sprite = isDashPose
+    ? assets?.heroMove ?? assets?.heroAir ?? assets?.heroIdle
+    : isAirPose
+      ? assets?.heroAir
+      : isMovingOnGround
+        ? assets?.heroMove ?? assets?.heroIdle
+        : assets?.heroIdle;
   if (sprite && isLoaded(sprite)) {
     const playerFacing = player.facing;
-    const poseScale = isAirPose ? 2.02 : isMovingOnGround ? 1.98 : 1.94;
+    const poseScale = isDashPose ? 2.1 : isAirPose ? 2.02 : isMovingOnGround ? 1.98 : 1.94;
     drawSpriteBottomCenter(
       ctx,
       sprite,
@@ -501,21 +544,21 @@ function pickEnemySprite(
 
 function pickEnemySizeScale(enemy: Enemy): number {
   if (enemy.tier === "scout") {
-    return 0.98;
+    return 1.82;
   }
   if (enemy.tier === "runner") {
-    return 1.02;
+    return 1.95;
   }
   if (enemy.tier === "hopper") {
-    return 1.1;
+    return 1.85;
   }
   if (enemy.tier === "guard") {
-    return 1.22;
+    return 1.95;
   }
   if (enemy.tier === "ace") {
-    return 1.36;
+    return 2.08;
   }
-  return 1.1;
+  return 1.85;
 }
 
 function drawDecorationFallback(

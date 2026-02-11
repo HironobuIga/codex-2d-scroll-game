@@ -71,6 +71,13 @@ Original prompt: 現在のプロジェクト設定をベースに2dスクロー�
 - Added game-over recovery option for falls: users can now retry from the same stage (`Retry Stage` button / `R` key) instead of always restarting from Stage 1.
 - Added fall-vs-defeat game-over reason tracking and stage-start score snapshot so stage retry resets the current stage state cleanly while preserving run structure.
 - Validation updated: `npm run build` passes and Playwright confirms fall -> gameover(reason=fall) -> `R` retry returns to `mode=playing` at stage spawn (`output/playwright-fall-option/*`, `output/playwright-fall-retry-keyr/*`); only existing CSP source warnings remain.
+- Increased enemy visual scale across all tiers so they read larger against the hero silhouette during gameplay.
+- Validation updated: `npm run build` passes and Playwright enemy-size check confirms larger on-screen enemies (`output/playwright-enemy-size-check/*`); only existing CSP source warnings remain.
+- Fixed enemy left/right facing by inverting enemy sprite-facing mapping so motion direction matches visible orientation.
+- Validation updated: `npm run build` passes and Playwright facing check confirms corrected orientation in gameplay (`output/playwright-enemy-facing-check/*`); only existing CSP source warnings remain.
+- Expanded player action variety with three new mechanics: mid-air jump (double-jump), directional dash (`A`), and pulse burst (`B`) that damages nearby enemies and clears nearby enemy shots.
+- Updated title overlay and `render_game_to_text` payload to expose new player action state (`airJumpsRemaining`, dash/pulse timers and cooldowns) for deterministic testing.
+- Validation updated: `npm run build` passes and Playwright checks show new action state + visuals (`output/playwright-player-action-variety/*`, `output/playwright-player-actions-visual/*`); only existing CSP source warnings remain.
 
 ## TODO
 - Run deeper Playwright scenarios that intentionally clear Stage1->Stage5 and confirm every transition overlay/path is reachable.

@@ -16,6 +16,11 @@ export class Player {
   hp = PLAYER_MAX_HP;
   grounded = false;
   invincibleTimer = 0;
+  airJumpsRemaining = 1;
+  dashTimer = 0;
+  dashCooldownTimer = 0;
+  pulseTimer = 0;
+  pulseCooldownTimer = 0;
 
   constructor(spawn: Vec2) {
     this.reset(spawn);
@@ -30,6 +35,11 @@ export class Player {
     this.hp = PLAYER_MAX_HP;
     this.grounded = false;
     this.invincibleTimer = 0;
+    this.airJumpsRemaining = 1;
+    this.dashTimer = 0;
+    this.dashCooldownTimer = 0;
+    this.pulseTimer = 0;
+    this.pulseCooldownTimer = 0;
   }
 
   rect(): Rect {
