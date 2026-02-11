@@ -16,6 +16,7 @@ interface EnemyTierProfile {
   dashDuration: number;
   dashCooldown: number;
   dashRange: number;
+  shotCooldown: number;
 }
 
 const ENEMY_TIER_PROFILES: Record<EnemyTier, EnemyTierProfile> = {
@@ -31,6 +32,7 @@ const ENEMY_TIER_PROFILES: Record<EnemyTier, EnemyTierProfile> = {
     dashDuration: 0,
     dashCooldown: 0,
     dashRange: 0,
+    shotCooldown: 0,
   },
   runner: {
     widthScale: 0.96,
@@ -44,6 +46,7 @@ const ENEMY_TIER_PROFILES: Record<EnemyTier, EnemyTierProfile> = {
     dashDuration: 0.42,
     dashCooldown: 1.8,
     dashRange: 240,
+    shotCooldown: 0,
   },
   hopper: {
     widthScale: 0.88,
@@ -57,6 +60,7 @@ const ENEMY_TIER_PROFILES: Record<EnemyTier, EnemyTierProfile> = {
     dashDuration: 0,
     dashCooldown: 0,
     dashRange: 0,
+    shotCooldown: 0,
   },
   guard: {
     widthScale: 1.22,
@@ -70,6 +74,7 @@ const ENEMY_TIER_PROFILES: Record<EnemyTier, EnemyTierProfile> = {
     dashDuration: 0.28,
     dashCooldown: 2.1,
     dashRange: 180,
+    shotCooldown: 0,
   },
   ace: {
     widthScale: 1.38,
@@ -83,6 +88,7 @@ const ENEMY_TIER_PROFILES: Record<EnemyTier, EnemyTierProfile> = {
     dashDuration: 0.46,
     dashCooldown: 1.45,
     dashRange: 320,
+    shotCooldown: 1.25,
   },
 };
 
@@ -109,9 +115,11 @@ export class Enemy {
   private readonly dashDuration: number;
   private readonly dashCooldown: number;
   private readonly dashRange: number;
+  private readonly shotCooldown: number;
   private jumpTimer: number;
   private dashTimer = 0;
   private dashCooldownTimer: number;
+  private shotCooldownTimer: number;
   private staggerTimer = 0;
 
   constructor(spawn: EnemySpawn, stageNumber: number, enemyIndex: number) {
@@ -134,8 +142,11 @@ export class Enemy {
     this.dashDuration = profile.dashDuration;
     this.dashCooldown = profile.dashCooldown;
     this.dashRange = profile.dashRange;
+    this.shotCooldown = profile.shotCooldown;
     this.jumpTimer = this.jumpInterval > 0 ? this.jumpInterval * (0.45 + (enemyIndex % 4) * 0.16) : 0;
-    this.dashCooldownTimer = this.dashCooldown > 0 ? (enemyIndex % 3) * 0.35 : 0;
+    const seed = spawnTimingSeed(spawn.x, spawn.y, enemyIndex);
+    this.dashCooldownTimer = this.dashCooldown > 0 ? this.dashCooldown * (0.12 + seed * 0.58) : 0;
+    this.shotCooldownTimer = this.shotCooldown > 0 ? this.shotCooldown * (0.2 + seed * 0.65) : 0;
   }
 
   rect(): Rect {
@@ -152,8 +163,12 @@ export class Enemy {
   }
 
   updateBehavior(dt: number, playerCenterX: number): number {
+    if (this.shotCooldownTimer > 0) {
+      this.shotCooldownTimer = Math.max(0, this.shotCooldownTimer - dt);
+    }
     if (this.staggerTimer > 0) {
       this.staggerTimer = Math.max(0, this.staggerTimer - dt);
+      this.vx = 0;
       return 0;
     }
 
@@ -201,6 +216,16 @@ export class Enemy {
   isDashing(): boolean {
     return this.dashTimer > 0;
   }
+
+  canFireProjectile(): boolean {
+    return this.shotCooldown <= 0 || this.shotCooldownTimer <= 0;
+  }
+
+  markProjectileFired(): void {
+    if (this.shotCooldown > 0) {
+      this.shotCooldownTimer = this.shotCooldown;
+    }
+  }
 }
 
 function pickEnemyTier(stageNumber: number, enemyIndex: number): EnemyTier {
@@ -226,4 +251,12 @@ function pickEnemyTier(stageNumber: number, enemyIndex: number): EnemyTier {
     return "guard";
   }
   return "hopper";
+}
+
+function spawnTimingSeed(x: number, y: number, enemyIndex: number): number {
+  const xSeed = Math.floor(x) * 73856093;
+  const ySeed = Math.floor(y) * 19349663;
+  const iSeed = enemyIndex * 83492791;
+  const hash = Math.abs((xSeed ^ ySeed ^ iSeed) % 1000);
+  return hash / 1000;
 }

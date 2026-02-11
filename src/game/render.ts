@@ -377,6 +377,7 @@ export function drawHud(
   ctx: CanvasRenderingContext2D,
   score: number,
   hp: number,
+  maxHp: number,
   collectedCoins: number,
   totalCoins: number,
   stageNumber: number,
@@ -403,8 +404,21 @@ export function drawHud(
   ctx.font = "700 17px 'Trebuchet MS', sans-serif";
   ctx.fillStyle = "#f6f8ff";
   ctx.fillText(`Score ${score}`, 28, 92);
-  ctx.fillText(`HP ${hp}`, 196, 92);
+  ctx.fillText(`HP ${hp}/${maxHp}`, 196, 92);
   ctx.fillText(`Coins ${collectedCoins}/${totalCoins}`, 286, 92);
+
+  const hpBarX = 196;
+  const hpBarY = 99;
+  const hpBarW = 78;
+  const hpBarH = 8;
+  const hpRatio = maxHp <= 0 ? 0 : Math.max(0, Math.min(1, hp / maxHp));
+  ctx.fillStyle = "rgba(7, 12, 26, 0.78)";
+  ctx.fillRect(hpBarX, hpBarY, hpBarW, hpBarH);
+  ctx.fillStyle = hpRatio > 0.45 ? "#7dffbc" : hpRatio > 0.2 ? "#ffd37d" : "#ff8f9f";
+  ctx.fillRect(hpBarX, hpBarY, hpBarW * hpRatio, hpBarH);
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.38)";
+  ctx.lineWidth = 1;
+  ctx.strokeRect(hpBarX, hpBarY, hpBarW, hpBarH);
 }
 
 export function drawOverlay(
@@ -539,7 +553,7 @@ function pickEnemySprite(
   if (enemy.tier === "ace") {
     return assets.enemyAce;
   }
-  return isMoving ? assets.enemyMove : assets.enemySlime;
+  return assets.enemySlime;
 }
 
 function pickEnemySizeScale(enemy: Enemy): number {
@@ -820,6 +834,7 @@ function wrap(value: number, length: number): number {
   return ((value % length) + length) % length;
 }
 
+// Expected input is a hex color (#RGB or #RRGGBB). Non-hex CSS colors are returned unchanged.
 function toRgba(color: string, alpha: number): string {
   const match = color.trim().match(/^#([0-9a-f]{3}|[0-9a-f]{6})$/i);
   if (!match) {

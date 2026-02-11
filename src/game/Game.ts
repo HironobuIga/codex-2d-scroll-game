@@ -14,6 +14,7 @@ import {
   PLAYER_JUMP_SPEED,
   PLAYER_KNOCKBACK_X,
   PLAYER_KNOCKBACK_Y,
+  PLAYER_MAX_HP,
   PLAYER_MAX_FALL_SPEED,
   PLAYER_MAX_SPEED_X,
   PLAYER_PULSE_COOLDOWN,
@@ -61,6 +62,8 @@ interface EnemyShot {
   vy: number;
   r: number;
   ttl: number;
+  damage: number;
+  sourceDirection: -1 | 1;
 }
 
 type GameOverReason = "fall" | "defeat" | null;
@@ -105,6 +108,7 @@ export class Game {
   activatePrimaryAction(): void {
     if (this.mode === "title" || this.mode === "gameover") {
       this.startRun();
+      this.updateCamera();
       return;
     }
     if (this.mode === "clear") {
@@ -113,6 +117,7 @@ export class Game {
       } else {
         this.advanceStage();
       }
+      this.updateCamera();
     }
   }
 
@@ -121,6 +126,7 @@ export class Game {
       return;
     }
     this.retryCurrentStage();
+    this.updateCamera();
   }
 
   shouldShowStartButton(): boolean {
@@ -150,9 +156,7 @@ export class Game {
 
     if (this.mode === "title" || this.mode === "gameover" || this.mode === "clear") {
       if (this.mode === "gameover" && this.canRetryCurrentStage() && input.consumePress("KeyR")) {
-        this.retryCurrentStage();
-        this.updateCamera();
-        return;
+        this.activateRetryStageAction();
       }
       if (input.consumePress("Space") || input.consumePress("Enter")) {
         this.activatePrimaryAction();
@@ -203,6 +207,7 @@ export class Game {
       ctx,
       this.score,
       this.player.hp,
+      PLAYER_MAX_HP,
       this.collectedCoins,
       this.coins.length,
       this.level.stageNumber,
@@ -295,6 +300,8 @@ export class Game {
         vx: round(shot.vx),
         vy: round(shot.vy),
         r: shot.r,
+        damage: shot.damage,
+        sourceDirection: shot.sourceDirection,
       })),
       coins: {
         remaining: this.coins.filter((coin) => !coin.collected).length,
@@ -425,6 +432,9 @@ export class Game {
     }
 
     this.updateEnemyShots(dt);
+    if (this.mode !== "playing") {
+      return;
+    }
 
     const playerRect = this.player.rect();
     for (const coin of this.coins) {
@@ -470,7 +480,7 @@ export class Game {
         continue;
       }
       this.damagePlayer(enemy);
-      if (this.mode === "gameover") {
+      if (this.mode !== "playing") {
         return;
       }
     }
@@ -522,6 +532,11 @@ export class Game {
   }
 
   private damagePlayer(enemy: Enemy): void {
+    const pushDirection: -1 | 1 = this.player.centerX() < enemy.centerX() ? -1 : 1;
+    this.applyPlayerDamage(enemy.contactDamage, pushDirection);
+  }
+
+  private applyPlayerDamage(damage: number, pushDirection: -1 | 1): void {
     if (this.player.dashTimer > 0) {
       return;
     }
@@ -529,10 +544,9 @@ export class Game {
       return;
     }
 
-    this.player.hp = Math.max(0, this.player.hp - enemy.contactDamage);
+    this.player.hp = Math.max(0, this.player.hp - damage);
     this.player.invincibleTimer = PLAYER_INVINCIBLE_SECONDS;
-    const pushDirection = this.player.centerX() < enemy.centerX() ? -1 : 1;
-    const knockbackScale = 1 + (enemy.contactDamage - 1) * 0.45;
+    const knockbackScale = 1 + (damage - 1) * 0.45;
     this.player.vx = pushDirection * PLAYER_KNOCKBACK_X * knockbackScale;
     this.player.vy = -PLAYER_KNOCKBACK_Y * knockbackScale;
     this.player.facing = this.player.vx > 0 ? 1 : -1;
@@ -549,6 +563,9 @@ export class Game {
   }
 
   private maybeFireEnemyShot(enemy: Enemy): void {
+    if (!enemy.canFireProjectile()) {
+      return;
+    }
     const muzzleX = enemy.centerX() + enemy.direction * enemy.w * 0.28;
     const muzzleY = enemy.y + enemy.h * 0.46;
     const toPlayerX = this.player.centerX() - muzzleX;
@@ -558,13 +575,6 @@ export class Game {
       return;
     }
     if (Math.abs(toPlayerY) > 170) {
-      return;
-    }
-
-    const hasRecentShot = this.enemyShots.some(
-      (shot) => Math.abs(shot.x - muzzleX) < 72 && Math.abs(shot.y - muzzleY) < 52 && shot.ttl > 2.15,
-    );
-    if (hasRecentShot) {
       return;
     }
 
@@ -578,7 +588,10 @@ export class Game {
       vy: dy * speed * 0.74,
       r: 8,
       ttl: 2.7,
+      damage: enemy.contactDamage,
+      sourceDirection: dx >= 0 ? 1 : -1,
     });
+    enemy.markProjectileFired();
   }
 
   private updateEnemyShots(dt: number): void {
@@ -597,19 +610,7 @@ export class Game {
         continue;
       }
       if (circleIntersectsRect(nx, ny, shot.r, this.player.rect())) {
-        if (this.player.dashTimer > 0) {
-          continue;
-        }
-        const ace = this.enemies.find((enemy) => enemy.tier === "ace" && enemy.alive) ?? null;
-        if (ace) {
-          this.damagePlayer(ace);
-        } else if (this.player.invincibleTimer <= 0) {
-          this.player.hp = Math.max(0, this.player.hp - 1);
-          this.player.invincibleTimer = PLAYER_INVINCIBLE_SECONDS;
-          if (this.player.hp === 0) {
-            this.setGameOver("defeat");
-          }
-        }
+        this.applyPlayerDamage(shot.damage, shot.sourceDirection);
         continue;
       }
       nextShots.push({ ...shot, x: nx, y: ny, ttl });
@@ -652,7 +653,20 @@ export class Game {
   }
 
   private canRetryCurrentStage(): boolean {
-    return this.gameOverReason === "fall";
+    if (this.gameOverReason == null) {
+      return false;
+    }
+    if (this.gameOverReason === "fall") {
+      return true;
+    }
+    return this.hasMadeStageProgress();
+  }
+
+  private hasMadeStageProgress(): boolean {
+    const collectedAnyCoins = this.collectedCoins > 0;
+    const defeatedAnyEnemies = this.enemies.some((enemy) => !enemy.alive);
+    const movedFromSpawn = Math.abs(this.player.x - this.level.spawn.x) > 56;
+    return collectedAnyCoins || defeatedAnyEnemies || movedFromSpawn || this.elapsedSeconds > 1.5;
   }
 
   private retryCurrentStage(): void {

@@ -78,6 +78,20 @@ Original prompt: 現在のプロジェクト設定をベースに2dスクロー�
 - Expanded player action variety with three new mechanics: mid-air jump (double-jump), directional dash (`A`), and pulse burst (`B`) that damages nearby enemies and clears nearby enemy shots.
 - Updated title overlay and `render_game_to_text` payload to expose new player action state (`airJumpsRemaining`, dash/pulse timers and cooldowns) for deterministic testing.
 - Validation updated: `npm run build` passes and Playwright checks show new action state + visuals (`output/playwright-player-action-variety/*`, `output/playwright-player-actions-visual/*`); only existing CSP source warnings remain.
+- Addressed PR review comments with gameplay/runtime fixes:
+  - Added early-return guard after enemy-shot updates so lethal projectile hits cannot be overwritten by later clear checks.
+  - Reworked enemy projectiles to carry impact context (`damage`, `sourceDirection`) and applied unified damage handling via `applyPlayerDamage`.
+  - Added per-enemy ace shot cooldown usage and removed prior spatial "recent shot" heuristic.
+  - Improved enemy stagger behavior to zero horizontal speed while staggered.
+  - Replaced dash cooldown seed sync pattern with spawn-hash-based timing seed.
+  - Unified restart camera timing across keyboard/button paths by updating camera inside both primary/retry actions.
+- Addressed PR review comments with polish/maintainability updates:
+  - Removed unused `enemyMove` asset from loading pipeline and fallback rendering path.
+  - Added player HP bar to HUD and updated HP text to `current/max`.
+  - Standardized stage taglines to English for UI language consistency.
+  - Documented Playwright Darwin-to-macOS host mapping formula in code comments.
+  - Added comment for `toRgba` expected input format.
+- Validation updated: `npm run build` and Playwright smoke pass after PR-comment fixes (`output/playwright-pr-comment-fixes/*`); only existing CSP source warnings remain.
 
 ## TODO
 - Run deeper Playwright scenarios that intentionally clear Stage1->Stage5 and confirm every transition overlay/path is reachable.

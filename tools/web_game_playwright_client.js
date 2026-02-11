@@ -42,6 +42,8 @@ function inferMacHostPlatformForArm64() {
   if (kernelMajor === 19) {
     return "mac10.15-arm64";
   }
+  // Darwin 20 roughly maps to macOS 11; for modern releases we approximate
+  // with `major = kernelMajor - 9` and clamp to known Playwright platform ids.
   const hostMajor = Math.min(kernelMajor - 9, 15);
   return `mac${hostMajor}-arm64`;
 }

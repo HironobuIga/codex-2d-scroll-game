@@ -5,7 +5,6 @@ import heroAirUrl from "../assets/sprites/hero-air.png";
 import heroIdleUrl from "../assets/sprites/hero-idle.png";
 import heroMoveUrl from "../assets/sprites/hero-move.png";
 import enemySlimeUrl from "../assets/sprites/enemy-slime.png";
-import enemyMoveUrl from "../assets/sprites/enemy-move.png";
 import enemyScoutUrl from "../assets/sprites/enemy-scout.png";
 import enemyRunnerUrl from "../assets/sprites/enemy-runner.png";
 import enemyHopperUrl from "../assets/sprites/enemy-hopper.png";
@@ -27,7 +26,6 @@ export interface GameAssets {
   heroMove: HTMLImageElement;
   heroAir: HTMLImageElement;
   enemySlime: HTMLImageElement;
-  enemyMove: HTMLImageElement;
   enemyScout: HTMLImageElement;
   enemyRunner: HTMLImageElement;
   enemyHopper: HTMLImageElement;
@@ -61,7 +59,6 @@ export async function loadGameAssets(): Promise<GameAssets> {
     heroMove,
     heroAir,
     enemySlime,
-    enemyMove,
     enemyScout,
     enemyRunner,
     enemyHopper,
@@ -82,7 +79,6 @@ export async function loadGameAssets(): Promise<GameAssets> {
     loadImage("heroMove", heroMoveUrl),
     loadImage("heroAir", heroAirUrl),
     loadImage("enemySlime", enemySlimeUrl),
-    loadImage("enemyMove", enemyMoveUrl),
     loadImage("enemyScout", enemyScoutUrl),
     loadImage("enemyRunner", enemyRunnerUrl),
     loadImage("enemyHopper", enemyHopperUrl),
@@ -105,7 +101,6 @@ export async function loadGameAssets(): Promise<GameAssets> {
     heroMove,
     heroAir,
     enemySlime,
-    enemyMove,
     enemyScout,
     enemyRunner,
     enemyHopper,
